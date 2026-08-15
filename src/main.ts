@@ -40,6 +40,7 @@ const categoryClue = requiredElement<HTMLParagraphElement>("category-clue");
 const status = requiredElement<HTMLParagraphElement>("status");
 const history = requiredElement<HTMLTableSectionElement>("guess-history");
 const historyCount = requiredElement<HTMLSpanElement>("history-count");
+const historySection = requiredElement<HTMLElement>("history-section");
 
 let vocabulary: VocabularyData;
 let puzzles: PuzzleSummary[] = [];
@@ -126,17 +127,13 @@ function updateHintControls(): void {
 }
 
 function renderResults(results: readonly GuessResult[]): void {
+  historySection.hidden = results.length === 0;
   history.replaceChildren();
   const counts = session?.getResultCounts() ?? { guesses: 0, hints: 0 };
   const hintCount = counts.hints + (categoryIsRevealed() ? 1 : 0);
   historyCount.textContent = `${counts.guesses} ${counts.guesses === 1 ? "guess" : "guesses"} · ${hintCount} ${hintCount === 1 ? "hint" : "hints"}`;
 
   if (results.length === 0) {
-    const row = history.insertRow();
-    row.id = "empty-row";
-    const cell = row.insertCell();
-    cell.colSpan = 3;
-    cell.textContent = "No guesses or word hints yet.";
     return;
   }
 
@@ -372,7 +369,6 @@ async function initialize(): Promise<void> {
     progress = browserStorage
       ? loadProgress(browserStorage, vocabulary.version, puzzles.map((puzzle) => puzzle.id))
       : emptyProgress(vocabulary.version, puzzles[0]?.id ?? "0");
-    renderPuzzleGrid();
     const initialPuzzle = puzzles.find((puzzle) => puzzle.id === progress.selectedPuzzleId) ?? puzzles[0];
     if (!initialPuzzle) throw new Error("The puzzle collection is empty.");
     await selectPuzzle(initialPuzzle);

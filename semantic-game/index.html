@@ -43,7 +43,7 @@ permalink: /semantic-game/
 
   <p id="status" class="status" role="status" aria-live="polite">Loading puzzles…</p>
 
-  <section aria-labelledby="guesses-heading">
+  <section id="history-section" aria-labelledby="guesses-heading" hidden>
     <div class="history-heading">
       <h2 id="guesses-heading">History</h2>
       <span id="history-count">0 guesses · 0 hints</span>
@@ -57,9 +57,7 @@ permalink: /semantic-game/
             <th scope="col">Proximity</th>
           </tr>
         </thead>
-        <tbody id="guess-history">
-          <tr id="empty-row"><td colspan="3">No guesses or word hints yet.</td></tr>
-        </tbody>
+        <tbody id="guess-history"></tbody>
       </table>
     </div>
   </section>

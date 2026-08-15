@@ -100,7 +100,6 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   vertical-align: 0.1em;
 }
 .answer-badge { background: #e5b9a3; color: #612b17; }
-#empty-row td { color: #777872; text-align: center; }
 
 @media (prefers-color-scheme: dark) {
   :root { background: #171916; color: #eff1ea; }

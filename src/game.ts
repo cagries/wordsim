@@ -100,7 +100,7 @@ export class GameSession {
       throw new GuessError("empty", "Enter a word.");
     }
     if (!/^[a-z]+$/.test(word)) {
-      throw new GuessError("invalid", "Guesses must contain letters only.");
+      throw new GuessError("invalid", "Guesses must contain letters only (no spaces).");
     }
     if (this.guessedWords.has(word)) {
       throw new GuessError("duplicate", `You already guessed “${word}”.`);
