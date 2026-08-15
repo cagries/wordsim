@@ -39,5 +39,5 @@ export interface GuessResult {
   score: number;
   rank: number | null;
   solved: boolean;
+  source: "guess" | "hint";
 }
-

@@ -4,6 +4,8 @@ A small Semantle-like game that scores guesses by semantic similarity. The websi
 
 The demo contains five puzzles: elephant, bicycle, violin, volcano, and kitchen. EmbeddingGemma is the only active extractor in this version. The browser downloads a shared 30,000-word vocabulary and one compact score table at a time.
 
+Players may request progressive hints without a usage quota. The first hint reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 5 so that the answer and its four nearest words remain hidden. Hints are marked in the shared history and counted separately from player guesses.
+
 ## Prerequisites
 
 - Node.js 18 or newer
@@ -76,4 +78,3 @@ The Python extractor boundary returns a normalized NumPy matrix. A future Google
 The vocabulary schema currently declares `keyEncoding: "plain"`. A future version may store salted hashes and change only the guess-key encoder. This would discourage casual inspection but cannot prevent offline dictionary enumeration in a fully static application.
 
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for model and vocabulary attribution.
-

@@ -19,9 +19,10 @@ const resetButton = requiredElement<HTMLButtonElement>("reset-button");
 const form = requiredElement<HTMLFormElement>("guess-form");
 const input = requiredElement<HTMLInputElement>("guess-input");
 const guessButton = requiredElement<HTMLButtonElement>("guess-button");
+const hintButton = requiredElement<HTMLButtonElement>("hint-button");
 const status = requiredElement<HTMLParagraphElement>("status");
 const history = requiredElement<HTMLTableSectionElement>("guess-history");
-const guessCount = requiredElement<HTMLSpanElement>("guess-count");
+const historyCount = requiredElement<HTMLSpanElement>("history-count");
 
 let vocabulary: VocabularyData;
 let puzzles: PuzzleSummary[] = [];
@@ -37,23 +38,37 @@ function setGuessingEnabled(enabled: boolean): void {
   guessButton.disabled = !enabled;
 }
 
+function updateHintButton(): void {
+  const nextRank = session?.getNextHintRank() ?? null;
+  hintButton.disabled = nextRank === null;
+  hintButton.textContent = session && !session.solved && nextRank === null ? "No more hints" : "Hint";
+}
+
 function renderResults(results: readonly GuessResult[]): void {
   history.replaceChildren();
-  guessCount.textContent = String(results.length);
+  const counts = session?.getResultCounts() ?? { guesses: 0, hints: 0 };
+  historyCount.textContent = `${counts.guesses} ${counts.guesses === 1 ? "guess" : "guesses"} · ${counts.hints} ${counts.hints === 1 ? "hint" : "hints"}`;
 
   if (results.length === 0) {
     const row = history.insertRow();
     row.id = "empty-row";
     const cell = row.insertCell();
     cell.colSpan = 3;
-    cell.textContent = "No guesses yet.";
+    cell.textContent = "No guesses or hints yet.";
     return;
   }
 
   for (const result of results) {
     const row = history.insertRow();
     if (result.solved) row.className = "solved-row";
-    row.insertCell().textContent = result.word;
+    const wordCell = row.insertCell();
+    wordCell.append(result.word);
+    if (result.source === "hint") {
+      const badge = document.createElement("span");
+      badge.className = "hint-badge";
+      badge.textContent = "Hint";
+      wordCell.append(badge);
+    }
     row.insertCell().textContent = formatScore(result.score);
     row.insertCell().textContent = result.rank === null ? "cold" : `#${result.rank}`;
   }
@@ -63,6 +78,7 @@ async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
   session = null;
   puzzleSelect.disabled = true;
   setGuessingEnabled(false);
+  updateHintButton();
   resetButton.disabled = true;
   renderResults([]);
   setStatus(`Loading ${puzzle.label}…`);
@@ -71,6 +87,7 @@ async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
     const data = await loadPuzzle(dataRoot, puzzle.file);
     session = new GameSession(vocabulary, data);
     setGuessingEnabled(true);
+    updateHintButton();
     puzzleSelect.disabled = false;
     resetButton.disabled = false;
     setStatus("Try any common English word.");
@@ -94,6 +111,7 @@ form.addEventListener("submit", (event) => {
   try {
     const result = session.guess(input.value);
     renderResults(session.getResults());
+    updateHintButton();
     input.value = "";
     if (result.solved) {
       setStatus(`Solved! The word was “${result.word}”.`, "success");
@@ -110,6 +128,26 @@ form.addEventListener("submit", (event) => {
 
 puzzleSelect.addEventListener("change", () => void selectPuzzle(currentPuzzle()));
 resetButton.addEventListener("click", () => void selectPuzzle(currentPuzzle()));
+hintButton.addEventListener("click", () => {
+  if (!session) return;
+
+  try {
+    const result = session.revealHint();
+    if (!result) {
+      updateHintButton();
+      setStatus("No safer hints remain.");
+      return;
+    }
+
+    renderResults(session.getResults());
+    updateHintButton();
+    const suffix = result.rank === 5 ? " This is the closest available hint." : "";
+    setStatus(`Hint: “${result.word}” is ranked #${result.rank}.${suffix}`);
+    input.focus();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Could not reveal a hint.", "error");
+  }
+});
 
 async function initialize(): Promise<void> {
   try {

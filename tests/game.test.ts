@@ -46,12 +46,14 @@ describe("GameSession", () => {
       score: 7345,
       rank: 2,
       solved: false,
+      source: "guess",
     });
     assert.deepEqual(session.guess("cold"), {
       word: "cold",
       score: -1200,
       rank: null,
       solved: false,
+      source: "guess",
     });
   });
 
@@ -94,5 +96,86 @@ describe("GameSession", () => {
       () => new GameSession(vocabulary, { ...puzzle, vocabularyVersion: "other" }),
       /versions do not match/,
     );
+  });
+});
+
+describe("GameSession hints", () => {
+  const hintVocabulary: VocabularyData = {
+    schemaVersion: 1,
+    version: "hint-version",
+    keyEncoding: "plain",
+    keys: Array.from({ length: 26 }, (_, index) => `word${String.fromCharCode(97 + index)}`),
+  };
+  const hintPuzzle: PuzzleData = {
+    schemaVersion: 1,
+    vocabularyVersion: "hint-version",
+    targetKey: "worda",
+    scores: Array.from({ length: 26 }, (_, index) => 10_000 - index * 100),
+    topIndices: Array.from({ length: 25 }, (_, index) => index),
+  };
+
+  it("starts at rank 20 when there are no guesses", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    assert.equal(session.getNextHintRank(), 20);
+    assert.deepEqual(session.revealHint(), {
+      word: "wordt",
+      score: 8100,
+      rank: 20,
+      solved: false,
+      source: "hint",
+    });
+  });
+
+  it("starts at rank 20 when all guesses are cold", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    assert.equal(session.guess("wordz").rank, null);
+    assert.equal(session.getNextHintRank(), 20);
+  });
+
+  it("reveals one rank better than the current best", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    assert.equal(session.guess("wordl").rank, 12);
+    assert.equal(session.getNextHintRank(), 11);
+    assert.equal(session.revealHint()?.rank, 11);
+  });
+
+  it("progresses one rank at a time and stops after rank 5", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    const ranks: number[] = [];
+    while (session.getNextHintRank() !== null) {
+      const hint = session.revealHint();
+      assert.ok(hint);
+      ranks.push(hint.rank as number);
+    }
+    assert.deepEqual(ranks, Array.from({ length: 16 }, (_, index) => 20 - index));
+    assert.equal(session.revealHint(), null);
+  });
+
+  it("offers no hint when a player is already better than rank 5", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    assert.equal(session.guess("wordd").rank, 4);
+    assert.equal(session.getNextHintRank(), null);
+  });
+
+  it("treats revealed hints as duplicate words", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    const hint = session.revealHint();
+    assert.ok(hint);
+    assert.throws(() => session.guess(hint.word), /already guessed/);
+  });
+
+  it("counts guesses and hints separately", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    session.guess("wordz");
+    session.revealHint();
+    session.revealHint();
+    assert.deepEqual(session.getResultCounts(), { guesses: 1, hints: 2 });
+  });
+
+  it("disables hints after solving", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    session.guess("worda");
+    assert.equal(session.getNextHintRank(), null);
+    assert.equal(session.revealHint(), null);
   });
 });

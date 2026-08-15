@@ -37,6 +37,7 @@ permalink: /semantic-game/
         disabled
       >
       <button id="guess-button" type="submit" disabled>Guess</button>
+      <button id="hint-button" class="hint-button" type="button" disabled>Hint</button>
     </div>
   </form>
 
@@ -44,8 +45,8 @@ permalink: /semantic-game/
 
   <section aria-labelledby="guesses-heading">
     <div class="history-heading">
-      <h2 id="guesses-heading">Guesses</h2>
-      <span id="guess-count">0</span>
+      <h2 id="guesses-heading">History</h2>
+      <span id="history-count">0 guesses · 0 hints</span>
     </div>
     <div class="table-wrap">
       <table>
@@ -57,7 +58,7 @@ permalink: /semantic-game/
           </tr>
         </thead>
         <tbody id="guess-history">
-          <tr id="empty-row"><td colspan="3">No guesses yet.</td></tr>
+          <tr id="empty-row"><td colspan="3">No guesses or hints yet.</td></tr>
         </tbody>
       </table>
     </div>

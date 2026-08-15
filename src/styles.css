@@ -48,7 +48,9 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .guess-form label, .game-controls label { font-weight: 650; }
 .guess-row { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
 .guess-row input { min-width: 0; flex: 1; padding: 0.75rem; }
-.guess-row button { background: #176b50; border-color: #176b50; color: white; font-weight: 700; }
+.guess-row button { font-weight: 700; }
+#guess-button { background: #176b50; border-color: #176b50; color: white; }
+.hint-button { background: #fff5cf; border-color: #b79a3c; color: #5a4710; }
 
 .status { min-height: 1.5rem; color: #62645f; }
 .status[data-kind="error"] { color: #a02828; }
@@ -62,6 +64,19 @@ table { width: 100%; border-collapse: collapse; background: #fffdf8; }
 th, td { border-bottom: 1px solid #d7d2c8; padding: 0.7rem; text-align: left; }
 th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
 .solved-row { background: #d8f0e5; font-weight: 700; }
+.hint-badge {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #f3df95;
+  color: #59450e;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: 0.1em;
+}
 #empty-row td { color: #777872; text-align: center; }
 
 @media (prefers-color-scheme: dark) {
@@ -70,6 +85,13 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .game-header p, .status, .history-heading span { color: #afb5a8; }
   .landing a, .home-link { color: #71d3ad; }
   .solved-row { background: #164f3a; }
+  .hint-button { background: #514319; border-color: #8d7939; color: #ffecac; }
+  .hint-badge { background: #66551c; color: #ffecac; }
   th, td { border-color: #43483f; }
 }
 
+@media (max-width: 32rem) {
+  .guess-row { flex-wrap: wrap; }
+  .guess-row input { flex-basis: 100%; }
+  .guess-row button { flex: 1; }
+}
