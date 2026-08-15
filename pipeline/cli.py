@@ -208,7 +208,7 @@ def parser() -> argparse.ArgumentParser:
         "command", choices=("generate", "audit"), help="Pipeline operation to run."
     )
     command_parser.add_argument(
-        "--output", type=Path, default=Path("assets/wordsim/data")
+        "--output", type=Path, default=Path("wordsim/data")
     )
     command_parser.add_argument("--cache", type=Path, default=Path("pipeline-cache"))
     command_parser.add_argument("--targets", type=Path, default=TARGETS_FILE)

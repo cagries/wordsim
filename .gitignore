@@ -3,10 +3,8 @@ _site/
 .sass-cache/
 .bundle/
 vendor/
-assets/wordsim/app.js
-assets/wordsim/app.css
-assets/wordsim/app.js.map
-assets/wordsim/app.css.map
+wordsim/app.js.map
+wordsim/app.css.map
 node_modules/
 .test-build/
 game/

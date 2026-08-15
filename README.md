@@ -1,6 +1,6 @@
 # wordsim
 
-A small game that scores guesses by semantic similarity. The website is a static Jekyll page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline.
+A small game that scores guesses by semantic similarity. The game is a standalone static page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline. This repository also includes a Jekyll landing page for local previewing.
 
 The demo contains 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets.json`; Puzzle 1 is violin and Puzzle 2 is airport. EmbeddingGemma is the only active extractor in this version. The browser downloads a shared 30,000-word vocabulary and one compact score table at a time.
 
@@ -40,7 +40,7 @@ Generation performs the following work:
 2. Encodes `task: sentence similarity | query: <word>` with the pinned EmbeddingGemma revision.
 3. Stores normalized embeddings in `pipeline-cache/embeddings.npy` for reuse.
 4. Reads the 50 stable IDs, words, and categories from `pipeline/targets.json`.
-5. Writes the versioned vocabulary, collection manifest, and 50 minified puzzle tables to `assets/wordsim/data/`.
+5. Writes the versioned vocabulary, collection manifest, and 50 minified puzzle tables to `wordsim/data/`.
 
 Useful generator options include `--device mps`, `--device cuda`, `--batch-size N`, `--targets PATH`, and `--force`. The default uses the framework-selected device and float32 model activations. A valid generated vocabulary and embedding cache can be reused without loading the model dependencies; a fresh vocabulary still requires `wordfreq`. Embedding regeneration is automatic if the model, prompt, Sentence Transformers version, or vocabulary checksum changes.
 
@@ -92,6 +92,27 @@ bundle exec jekyll serve --baseurl /example
 Then open `http://localhost:4000/example/wordsim/`.
 
 The repository intentionally contains no deployment workflow. `npm run build:site` bundles the browser code and creates the local `_site/` output.
+
+## Add to another static or Jekyll site
+
+The complete runtime is the `wordsim/` directory:
+
+```text
+wordsim/
+├── index.html
+├── app.js
+├── app.css
+└── data/
+    ├── collection.json
+    ├── vocabulary.json
+    └── puzzles/
+```
+
+Copy that directory into the root of the destination site. It needs no Jekyll layout, plugin, configuration, Node dependency, Python dependency, or server-side application. Jekyll copies it as ordinary static content, and the game is then available at `/wordsim/`.
+
+All runtime references are relative, so the directory can be renamed or hosted beneath a base path. For example, copying it to `experiments/semantic-game/` makes it available at `/experiments/semantic-game/`. The heading links to the directory immediately above the installed game.
+
+Run `npm run build:game` before copying when the TypeScript or CSS source has changed. Regenerating puzzle data is only necessary when the vocabulary, model configuration, or targets change.
 
 ## Tests
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
+from pipeline.cli import parser
 from pipeline.config import TARGET_COUNT, TARGETS_FILE
 from pipeline.core import (
     build_vocabulary,
@@ -17,6 +18,10 @@ from pipeline.core import (
 
 
 class PipelineCoreTests(unittest.TestCase):
+    def test_cli_defaults_to_standalone_package_data(self) -> None:
+        args = parser().parse_args(["audit"])
+        self.assertEqual(args.output, Path("wordsim/data"))
+
     def test_configured_targets_have_pinned_introduction(self) -> None:
         targets = load_targets(TARGETS_FILE, TARGET_COUNT)
         self.assertEqual((targets[0]["id"], targets[0]["word"]), ("0", "violin"))

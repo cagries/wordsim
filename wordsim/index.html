@@ -1,16 +1,16 @@
----
-layout: default
-title: wordsim
-game: true
-permalink: /wordsim/
----
-<main
-  id="wordsim"
-  class="game-shell"
-  data-data-root="{{ '/assets/wordsim/data' | relative_url }}"
->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Guess a hidden word by following semantic similarity.">
+    <title>wordsim</title>
+    <link rel="stylesheet" href="./app.css">
+  </head>
+  <body>
+<main id="wordsim" class="game-shell" data-data-root="./data">
   <header class="game-header">
-    <h1><a class="home-link" href="{{ '/' | relative_url }}">wordsim</a></h1>
+    <h1><a class="home-link" href="../">wordsim</a></h1>
     <p>Guess the hidden word!</p>
   </header>
 
@@ -54,7 +54,7 @@ permalink: /wordsim/
           <tr>
             <th scope="col">Word</th>
             <th scope="col">Similarity</th>
-            <th scope="col">Proximity</th>
+            <th scope="col">Ranking</th>
           </tr>
         </thead>
         <tbody id="guess-history"></tbody>
@@ -70,6 +70,7 @@ permalink: /wordsim/
     <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
     <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span><span>× Answer revealed</span></p>
   </section>
-
-
 </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
