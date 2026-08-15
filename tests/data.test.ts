@@ -45,12 +45,34 @@ describe("data loading", () => {
     await assert.rejects(loadPuzzle("/data", "missing.json"), /404/);
   });
 
+  it("loads categorized puzzle schema version 2", async () => {
+    const puzzle = {
+      schemaVersion: 2,
+      vocabularyVersion: "abc",
+      targetKey: "violin",
+      category: "object",
+      scores: [10_000],
+      topIndices: [0],
+    };
+    mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => puzzle }) as Response);
+    assert.deepEqual(await loadPuzzle("/data", "puzzles/0.json"), puzzle);
+  });
+
   it("rejects unsupported puzzle schemas", async () => {
     mock.method(
       globalThis,
       "fetch",
-      async () => ({ ok: true, json: async () => ({ schemaVersion: 2 }) }) as Response,
+      async () => ({ ok: true, json: async () => ({ schemaVersion: 3 }) }) as Response,
     );
     await assert.rejects(loadPuzzle("/data", "future.json"), /not supported/);
+  });
+
+  it("rejects puzzle data without a supported category", async () => {
+    mock.method(
+      globalThis,
+      "fetch",
+      async () => ({ ok: true, json: async () => ({ schemaVersion: 2, category: "abstract" }) }) as Response,
+    );
+    await assert.rejects(loadPuzzle("/data", "invalid.json"), /not supported/);
   });
 });

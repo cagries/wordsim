@@ -26,10 +26,13 @@ export interface VocabularyData {
   keys: string[];
 }
 
+export type TargetCategory = "animal" | "object" | "action" | "adjective" | "food" | "place";
+
 export interface PuzzleData {
-  schemaVersion: 1;
+  schemaVersion: 2;
   vocabularyVersion: string;
   targetKey: string;
+  category: TargetCategory;
   scores: number[];
   topIndices: number[];
 }
@@ -40,4 +43,22 @@ export interface GuessResult {
   rank: number | null;
   solved: boolean;
   source: "guess" | "hint";
+}
+
+export interface GameAction {
+  word: string;
+  source: "guess" | "hint";
+}
+
+export interface SavedPuzzleProgress {
+  actions: GameAction[];
+  categoryRevealed: boolean;
+  solved: boolean;
+}
+
+export interface StoredProgress {
+  schemaVersion: 1;
+  vocabularyVersion: string;
+  selectedPuzzleId: string;
+  puzzles: Record<string, SavedPuzzleProgress>;
 }

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { encodeGuessKey, formatScore, GameSession, GuessError, normalizeGuess } from "../src/game";
+import {
+  canRevealCategoryHint,
+  encodeGuessKey,
+  formatScore,
+  GameSession,
+  GuessError,
+  normalizeGuess,
+} from "../src/game";
 import type { PuzzleData, VocabularyData } from "../src/types";
 
 const vocabulary: VocabularyData = {
@@ -12,9 +19,10 @@ const vocabulary: VocabularyData = {
 };
 
 const puzzle: PuzzleData = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   vocabularyVersion: "test-version",
   targetKey: "target",
+  category: "object",
   scores: [-1200, 10000, 7345],
   topIndices: [1, 2],
 };
@@ -107,9 +115,10 @@ describe("GameSession hints", () => {
     keys: Array.from({ length: 26 }, (_, index) => `word${String.fromCharCode(97 + index)}`),
   };
   const hintPuzzle: PuzzleData = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     vocabularyVersion: "hint-version",
     targetKey: "worda",
+    category: "action",
     scores: Array.from({ length: 26 }, (_, index) => 10_000 - index * 100),
     topIndices: Array.from({ length: 25 }, (_, index) => index),
   };
@@ -177,5 +186,78 @@ describe("GameSession hints", () => {
     session.guess("worda");
     assert.equal(session.getNextHintRank(), null);
     assert.equal(session.revealHint(), null);
+  });
+
+  it("round-trips chronological guesses and hints", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    session.guess("wordz");
+    session.revealHint();
+    session.guess("wordl");
+    session.revealHint();
+
+    const restored = GameSession.restore(hintVocabulary, hintPuzzle, session.getActions());
+    assert.deepEqual(restored.getActions(), session.getActions());
+    assert.deepEqual(restored.getResults(), session.getResults());
+    assert.deepEqual(restored.getResultCounts(), { guesses: 2, hints: 2 });
+  });
+
+  it("rejects stale saved hints", () => {
+    assert.throws(
+      () => GameSession.restore(hintVocabulary, hintPuzzle, [{ source: "hint", word: "wordb" }]),
+      /does not match/,
+    );
+  });
+
+  it("resets all session state", () => {
+    const session = new GameSession(hintVocabulary, hintPuzzle);
+    session.guess("wordz");
+    session.revealHint();
+    session.reset();
+    assert.deepEqual(session.getActions(), []);
+    assert.deepEqual(session.getResults(), []);
+    assert.deepEqual(session.getResultCounts(), { guesses: 0, hints: 0 });
+    assert.equal(session.solved, false);
+    assert.equal(session.getNextHintRank(), 20);
+    assert.equal(canRevealCategoryHint(session), false);
+  });
+});
+
+describe("category hint access", () => {
+  const words = Array.from({ length: 25 }, (_, index) => `guess${String.fromCharCode(97 + index)}`);
+  const categoryVocabulary: VocabularyData = {
+    schemaVersion: 1,
+    version: "category-version",
+    keyEncoding: "plain",
+    keys: ["target", ...words, "hint"],
+  };
+  const categoryPuzzle: PuzzleData = {
+    schemaVersion: 2,
+    vocabularyVersion: "category-version",
+    targetKey: "target",
+    category: "food",
+    scores: categoryVocabulary.keys.map((_, index) => 10_000 - index * 100),
+    topIndices: categoryVocabulary.keys.map((_, index) => index),
+  };
+
+  it("unlocks on the tenth accepted player guess", () => {
+    const session = new GameSession(categoryVocabulary, categoryPuzzle);
+    for (const word of words.slice(0, 9)) session.guess(word);
+    assert.equal(canRevealCategoryHint(session), false);
+    session.guess(words[9]);
+    assert.equal(canRevealCategoryHint(session), true);
+  });
+
+  it("does not count rejected guesses or word hints", () => {
+    const session = new GameSession(categoryVocabulary, categoryPuzzle);
+    assert.throws(() => session.guess("missing"), GuessError);
+    session.revealHint();
+    assert.deepEqual(session.getResultCounts(), { guesses: 0, hints: 1 });
+    assert.equal(canRevealCategoryHint(session), false);
+  });
+
+  it("remains unavailable after an early solve", () => {
+    const session = new GameSession(categoryVocabulary, categoryPuzzle);
+    session.guess("target");
+    assert.equal(canRevealCategoryHint(session), false);
   });
 });

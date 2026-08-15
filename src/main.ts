@@ -1,7 +1,20 @@
 import "./styles.css";
 import { loadCollection, loadPuzzle } from "./data";
-import { formatScore, GameSession, GuessError } from "./game";
-import type { GuessResult, PuzzleSummary, VocabularyData } from "./types";
+import {
+  canRevealCategoryHint,
+  CATEGORY_GUESS_REQUIREMENT,
+  formatScore,
+  GameSession,
+  GuessError,
+} from "./game";
+import { emptyProgress, loadProgress, saveProgress } from "./persistence";
+import type {
+  GuessResult,
+  PuzzleSummary,
+  SavedPuzzleProgress,
+  StoredProgress,
+  VocabularyData,
+} from "./types";
 
 function requiredElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -14,19 +27,31 @@ const configuredDataRoot = root.dataset.dataRoot;
 if (!configuredDataRoot) throw new Error("The game data path is missing.");
 const dataRoot: string = configuredDataRoot;
 
-const puzzleSelect = requiredElement<HTMLSelectElement>("puzzle-select");
+const puzzleGrid = requiredElement<HTMLElement>("puzzle-grid");
 const resetButton = requiredElement<HTMLButtonElement>("reset-button");
 const form = requiredElement<HTMLFormElement>("guess-form");
 const input = requiredElement<HTMLInputElement>("guess-input");
 const guessButton = requiredElement<HTMLButtonElement>("guess-button");
-const hintButton = requiredElement<HTMLButtonElement>("hint-button");
+const wordHintButton = requiredElement<HTMLButtonElement>("word-hint-button");
+const categoryHintButton = requiredElement<HTMLButtonElement>("category-hint-button");
+const categoryClue = requiredElement<HTMLParagraphElement>("category-clue");
 const status = requiredElement<HTMLParagraphElement>("status");
 const history = requiredElement<HTMLTableSectionElement>("guess-history");
 const historyCount = requiredElement<HTMLSpanElement>("history-count");
 
 let vocabulary: VocabularyData;
 let puzzles: PuzzleSummary[] = [];
+let progress: StoredProgress;
+let activePuzzle: PuzzleSummary | null = null;
 let session: GameSession | null = null;
+let loadSequence = 0;
+const sessions = new Map<string, GameSession>();
+let browserStorage: Storage | null = null;
+try {
+  browserStorage = window.localStorage;
+} catch {
+  // Browser privacy settings may make localStorage unavailable.
+}
 
 function setStatus(message: string, kind: "normal" | "error" | "success" = "normal"): void {
   status.textContent = message;
@@ -38,23 +63,72 @@ function setGuessingEnabled(enabled: boolean): void {
   guessButton.disabled = !enabled;
 }
 
-function updateHintButton(): void {
+function persist(): void {
+  if (browserStorage) saveProgress(browserStorage, progress);
+}
+
+function savedProgress(puzzleId: string): SavedPuzzleProgress | undefined {
+  return progress.puzzles[puzzleId];
+}
+
+function categoryIsRevealed(): boolean {
+  return activePuzzle ? (savedProgress(activePuzzle.id)?.categoryRevealed ?? false) : false;
+}
+
+function syncActiveProgress(): void {
+  if (!activePuzzle || !session) return;
+  const previous = savedProgress(activePuzzle.id);
+  progress.puzzles[activePuzzle.id] = {
+    actions: [...session.getActions()],
+    categoryRevealed: previous?.categoryRevealed ?? false,
+    solved: session.solved,
+  };
+  persist();
+}
+
+function updateHintControls(): void {
   const nextRank = session?.getNextHintRank() ?? null;
-  hintButton.disabled = nextRank === null;
-  hintButton.textContent = session && !session.solved && nextRank === null ? "No more hints" : "Hint";
+  wordHintButton.disabled = nextRank === null;
+  wordHintButton.textContent = session && !session.solved && nextRank === null ? "No more word hints" : "Word hint";
+
+  const guesses = session?.getResultCounts().guesses ?? 0;
+  const revealed = categoryIsRevealed();
+  if (!session || session.solved) {
+    categoryHintButton.disabled = true;
+    categoryHintButton.textContent = "Category hint";
+  } else if (revealed) {
+    categoryHintButton.disabled = true;
+    categoryHintButton.textContent = "Category revealed";
+  } else if (!canRevealCategoryHint(session)) {
+    categoryHintButton.disabled = true;
+    categoryHintButton.textContent = `Category hint (${guesses}/${CATEGORY_GUESS_REQUIREMENT})`;
+  } else {
+    categoryHintButton.disabled = false;
+    categoryHintButton.textContent = "Category hint";
+  }
+
+  if (session && revealed) {
+    const name = session.category[0].toUpperCase() + session.category.slice(1);
+    categoryClue.textContent = `Category: ${name}`;
+    categoryClue.hidden = false;
+  } else {
+    categoryClue.textContent = "";
+    categoryClue.hidden = true;
+  }
 }
 
 function renderResults(results: readonly GuessResult[]): void {
   history.replaceChildren();
   const counts = session?.getResultCounts() ?? { guesses: 0, hints: 0 };
-  historyCount.textContent = `${counts.guesses} ${counts.guesses === 1 ? "guess" : "guesses"} · ${counts.hints} ${counts.hints === 1 ? "hint" : "hints"}`;
+  const hintCount = counts.hints + (categoryIsRevealed() ? 1 : 0);
+  historyCount.textContent = `${counts.guesses} ${counts.guesses === 1 ? "guess" : "guesses"} · ${hintCount} ${hintCount === 1 ? "hint" : "hints"}`;
 
   if (results.length === 0) {
     const row = history.insertRow();
     row.id = "empty-row";
     const cell = row.insertCell();
     cell.colSpan = 3;
-    cell.textContent = "No guesses or hints yet.";
+    cell.textContent = "No guesses or word hints yet.";
     return;
   }
 
@@ -74,34 +148,98 @@ function renderResults(results: readonly GuessResult[]): void {
   }
 }
 
+function renderPuzzleGrid(): void {
+  puzzleGrid.replaceChildren(
+    ...puzzles.map((puzzle, index) => {
+      const saved = savedProgress(puzzle.id);
+      const started = Boolean(saved && (saved.actions.length > 0 || saved.categoryRevealed));
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "puzzle-button";
+      button.dataset.state = saved?.solved ? "solved" : started ? "started" : "untouched";
+      if (activePuzzle?.id === puzzle.id) {
+        button.classList.add("selected");
+        button.setAttribute("aria-current", "page");
+      }
+      const visibleNumber = index + 1;
+      button.textContent = saved?.solved ? `${visibleNumber} ✓` : String(visibleNumber);
+      button.setAttribute(
+        "aria-label",
+        `Puzzle ${visibleNumber}${saved?.solved ? ", solved" : started ? ", started" : ""}`,
+      );
+      button.addEventListener("click", () => void selectPuzzle(puzzle));
+      return button;
+    }),
+  );
+}
+
+function activateSession(puzzle: PuzzleSummary, loadedSession: GameSession): void {
+  activePuzzle = puzzle;
+  session = loadedSession;
+  resetButton.disabled = false;
+  renderPuzzleGrid();
+  renderResults(session.getResults());
+  updateHintControls();
+  if (session.solved) {
+    const answer = session.getResults().find((result) => result.solved)?.word ?? "the target";
+    setStatus(`Solved! The word was “${answer}”.`, "success");
+    setGuessingEnabled(false);
+  } else {
+    setGuessingEnabled(true);
+    setStatus(session.getActions().length > 0 ? "Progress restored. Keep guessing." : "Try any common English word.");
+    input.focus();
+  }
+}
+
 async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
+  const sequence = ++loadSequence;
+  activePuzzle = puzzle;
+  progress.selectedPuzzleId = puzzle.id;
+  persist();
+  renderPuzzleGrid();
+
+  const cached = sessions.get(puzzle.id);
+  if (cached) {
+    activateSession(puzzle, cached);
+    return;
+  }
+
   session = null;
-  puzzleSelect.disabled = true;
   setGuessingEnabled(false);
-  updateHintButton();
+  updateHintControls();
   resetButton.disabled = true;
   renderResults([]);
   setStatus(`Loading ${puzzle.label}…`);
 
   try {
     const data = await loadPuzzle(dataRoot, puzzle.file);
-    session = new GameSession(vocabulary, data);
-    setGuessingEnabled(true);
-    updateHintButton();
-    puzzleSelect.disabled = false;
-    resetButton.disabled = false;
-    setStatus("Try any common English word.");
-    input.focus();
+    let loadedSession: GameSession;
+    const saved = savedProgress(puzzle.id);
+    try {
+      loadedSession = saved
+        ? GameSession.restore(vocabulary, data, saved.actions)
+        : new GameSession(vocabulary, data);
+    } catch {
+      delete progress.puzzles[puzzle.id];
+      persist();
+      loadedSession = new GameSession(vocabulary, data);
+    }
+    sessions.set(puzzle.id, loadedSession);
+    if (sequence !== loadSequence) return;
+    const restored = savedProgress(puzzle.id);
+    if (restored) {
+      progress.puzzles[puzzle.id] = {
+        actions: [...loadedSession.getActions()],
+        categoryRevealed: restored.categoryRevealed,
+        solved: loadedSession.solved,
+      };
+      persist();
+    }
+    activateSession(puzzle, loadedSession);
   } catch (error) {
-    puzzleSelect.disabled = false;
+    if (sequence !== loadSequence) return;
     setStatus(error instanceof Error ? error.message : "Could not load this puzzle.", "error");
   }
-}
-
-function currentPuzzle(): PuzzleSummary {
-  const puzzle = puzzles[Number(puzzleSelect.value)];
-  if (!puzzle) throw new Error("The selected puzzle does not exist.");
-  return puzzle;
 }
 
 form.addEventListener("submit", (event) => {
@@ -110,8 +248,10 @@ form.addEventListener("submit", (event) => {
 
   try {
     const result = session.guess(input.value);
+    syncActiveProgress();
+    renderPuzzleGrid();
     renderResults(session.getResults());
-    updateHintButton();
+    updateHintControls();
     input.value = "";
     if (result.solved) {
       setStatus(`Solved! The word was “${result.word}”.`, "success");
@@ -126,21 +266,32 @@ form.addEventListener("submit", (event) => {
   }
 });
 
-puzzleSelect.addEventListener("change", () => void selectPuzzle(currentPuzzle()));
-resetButton.addEventListener("click", () => void selectPuzzle(currentPuzzle()));
-hintButton.addEventListener("click", () => {
-  if (!session) return;
+resetButton.addEventListener("click", () => {
+  if (!session || !activePuzzle) return;
+  session.reset();
+  delete progress.puzzles[activePuzzle.id];
+  persist();
+  renderPuzzleGrid();
+  renderResults([]);
+  updateHintControls();
+  setGuessingEnabled(true);
+  setStatus("Puzzle reset. Try any common English word.");
+  input.focus();
+});
 
+wordHintButton.addEventListener("click", () => {
+  if (!session) return;
   try {
     const result = session.revealHint();
     if (!result) {
-      updateHintButton();
-      setStatus("No safer hints remain.");
+      updateHintControls();
+      setStatus("No safer word hints remain.");
       return;
     }
-
+    syncActiveProgress();
+    renderPuzzleGrid();
     renderResults(session.getResults());
-    updateHintButton();
+    updateHintControls();
     const suffix = result.rank === 5 ? " This is the closest available hint." : "";
     setStatus(`Hint: “${result.word}” is ranked #${result.rank}.${suffix}`);
     input.focus();
@@ -149,21 +300,34 @@ hintButton.addEventListener("click", () => {
   }
 });
 
+categoryHintButton.addEventListener("click", () => {
+  if (!session || !activePuzzle || session.solved || categoryIsRevealed()) return;
+  if (!canRevealCategoryHint(session)) return;
+  progress.puzzles[activePuzzle.id] = {
+    actions: [...session.getActions()],
+    categoryRevealed: true,
+    solved: session.solved,
+  };
+  persist();
+  renderPuzzleGrid();
+  renderResults(session.getResults());
+  updateHintControls();
+  setStatus(`Category revealed: ${session.category}.`);
+  input.focus();
+});
+
 async function initialize(): Promise<void> {
   try {
     const collection = await loadCollection(dataRoot);
     vocabulary = collection.vocabulary;
     puzzles = collection.manifest.puzzles;
-    puzzleSelect.replaceChildren(
-      ...puzzles.map((puzzle, index) => {
-        const option = document.createElement("option");
-        option.value = String(index);
-        option.textContent = puzzle.label;
-        return option;
-      }),
-    );
-    puzzleSelect.disabled = false;
-    await selectPuzzle(currentPuzzle());
+    progress = browserStorage
+      ? loadProgress(browserStorage, vocabulary.version, puzzles.map((puzzle) => puzzle.id))
+      : emptyProgress(vocabulary.version, puzzles[0]?.id ?? "0");
+    renderPuzzleGrid();
+    const initialPuzzle = puzzles.find((puzzle) => puzzle.id === progress.selectedPuzzleId) ?? puzzles[0];
+    if (!initialPuzzle) throw new Error("The puzzle collection is empty.");
+    await selectPuzzle(initialPuzzle);
   } catch (error) {
     setStatus(error instanceof Error ? error.message : "Could not start the game.", "error");
   }

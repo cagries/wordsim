@@ -10,6 +10,34 @@ import numpy as np
 
 
 WORD_PATTERN = re.compile(r"^[a-z]+$")
+TARGET_CATEGORIES = {"animal", "object", "action", "adjective", "food", "place"}
+
+
+def load_targets(path: Path, expected_count: int) -> list[dict[str, str]]:
+    value = read_json(path)
+    if not isinstance(value, list) or len(value) != expected_count:
+        actual = len(value) if isinstance(value, list) else "non-list"
+        raise ValueError(f"Target file has {actual} entries; expected {expected_count}.")
+
+    targets: list[dict[str, str]] = []
+    seen_words: set[str] = set()
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            raise ValueError(f"Target entry {index} must be an object.")
+        target_id = entry.get("id")
+        word = entry.get("word")
+        category = entry.get("category")
+        if target_id != str(index):
+            raise ValueError(f'Target entry {index} must have ID "{index}".')
+        if not isinstance(word, str) or not WORD_PATTERN.fullmatch(word):
+            raise ValueError(f"Target entry {index} must have a lowercase alphabetic word.")
+        if word in seen_words:
+            raise ValueError(f'Duplicate target word: "{word}".')
+        if category not in TARGET_CATEGORIES:
+            raise ValueError(f'Unsupported category for "{word}": {category!r}.')
+        seen_words.add(word)
+        targets.append({"id": target_id, "word": word, "category": category})
+    return targets
 
 
 def build_vocabulary(candidates: Iterable[str], size: int) -> list[str]:
@@ -79,4 +107,3 @@ def write_json(path: Path, value: object) -> None:
 
 def read_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
-

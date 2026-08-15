@@ -8,14 +8,8 @@ MODEL_PROMPT = "task: sentence similarity | query: "
 MODEL_DIMENSIONS = 768
 VOCABULARY_SIZE = 30_000
 TOP_RANK_COUNT = 1_000
-
-TARGETS = (
-    ("elephant", "Puzzle 1"),
-    ("bicycle", "Puzzle 2"),
-    ("violin", "Puzzle 3"),
-    ("volcano", "Puzzle 4"),
-    ("kitchen", "Puzzle 5"),
-)
+TARGET_COUNT = 50
+TARGETS_FILE = Path(__file__).with_name("targets.json")
 
 
 @dataclass(frozen=True)
@@ -38,4 +32,3 @@ class Paths:
     @property
     def cache_metadata(self) -> Path:
         return self.cache / "embeddings.json"
-

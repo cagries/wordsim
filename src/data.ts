@@ -37,9 +37,11 @@ export async function loadCollection(root: string): Promise<{
 
 export async function loadPuzzle(root: string, file: string): Promise<PuzzleData> {
   const puzzle = await fetchJson<PuzzleData>(resolveDataUrl(root, file));
-  if (puzzle.schemaVersion !== 1) {
+  if (
+    puzzle.schemaVersion !== 2 ||
+    !["animal", "object", "action", "adjective", "food", "place"].includes(puzzle.category)
+  ) {
     throw new Error("The puzzle format is not supported.");
   }
   return puzzle;
 }
-

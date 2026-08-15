@@ -12,12 +12,20 @@ from pipeline.config import (
     MODEL_ID,
     MODEL_PROMPT,
     MODEL_REVISION,
-    TARGETS,
+    TARGET_COUNT,
+    TARGETS_FILE,
     TOP_RANK_COUNT,
     VOCABULARY_SIZE,
     Paths,
 )
-from pipeline.core import build_vocabulary, read_json, score_target, vocabulary_version, write_json
+from pipeline.core import (
+    build_vocabulary,
+    load_targets,
+    read_json,
+    score_target,
+    vocabulary_version,
+    write_json,
+)
 from pipeline.extractors import EmbeddingGemmaExtractor
 
 
@@ -27,14 +35,35 @@ def load_common_words() -> list[str]:
     return build_vocabulary(iter_wordlist("en", wordlist="best"), VOCABULARY_SIZE)
 
 
-def expected_cache_metadata(version: str) -> dict[str, object]:
+def load_or_create_vocabulary(paths: Paths) -> list[str]:
+    if paths.vocabulary.exists():
+        value = read_json(paths.vocabulary)
+        if isinstance(value, dict):
+            keys = value.get("keys")
+            version = value.get("version")
+            if (
+                isinstance(keys, list)
+                and len(keys) == VOCABULARY_SIZE
+                and all(isinstance(word, str) for word in keys)
+                and version == vocabulary_version(keys)
+            ):
+                print(f"Using existing vocabulary from {paths.vocabulary}")
+                return keys
+    return load_common_words()
+
+
+def expected_cache_metadata(
+    version: str, sentence_transformers_version: str | None = None
+) -> dict[str, object]:
+    if sentence_transformers_version is None:
+        sentence_transformers_version = importlib.metadata.version("sentence-transformers")
     return {
         "model": MODEL_ID,
         "revision": MODEL_REVISION,
         "prompt": MODEL_PROMPT,
         "dimensions": MODEL_DIMENSIONS,
         "vocabularyVersion": version,
-        "sentenceTransformersVersion": importlib.metadata.version("sentence-transformers"),
+        "sentenceTransformersVersion": sentence_transformers_version,
     }
 
 
@@ -47,9 +76,21 @@ def load_or_create_embeddings(
     device: str | None,
     force: bool,
 ) -> np.ndarray:
-    expected = expected_cache_metadata(version)
+    actual = (
+        read_json(paths.cache_metadata)
+        if paths.embeddings.exists() and paths.cache_metadata.exists()
+        else None
+    )
+    try:
+        expected = expected_cache_metadata(version)
+    except importlib.metadata.PackageNotFoundError:
+        cached_version = (
+            actual.get("sentenceTransformersVersion") if isinstance(actual, dict) else None
+        )
+        if not isinstance(cached_version, str):
+            raise
+        expected = expected_cache_metadata(version, cached_version)
     if not force and paths.embeddings.exists() and paths.cache_metadata.exists():
-        actual = read_json(paths.cache_metadata)
         if actual == expected:
             embeddings = np.load(paths.embeddings)
             if embeddings.shape == (len(words), MODEL_DIMENSIONS):
@@ -72,8 +113,9 @@ def load_or_create_embeddings(
 
 def generate(args: argparse.Namespace) -> None:
     paths = Paths(output=args.output, cache=args.cache)
-    words = load_common_words()
-    missing = [target for target, _ in TARGETS if target not in words]
+    targets = load_targets(args.targets, TARGET_COUNT)
+    words = load_or_create_vocabulary(paths)
+    missing = [target["word"] for target in targets if target["word"] not in words]
     if missing:
         raise ValueError(f"Targets missing from vocabulary: {', '.join(missing)}")
 
@@ -93,20 +135,32 @@ def generate(args: argparse.Namespace) -> None:
     )
 
     puzzles: list[dict[str, str]] = []
-    for target, label in TARGETS:
-        scores, top_indices = score_target(words, embeddings, target, TOP_RANK_COUNT)
-        filename = f"puzzles/{target}.json"
+    expected_puzzle_files: set[Path] = set()
+    for target in targets:
+        target_id = target["id"]
+        word = target["word"]
+        label = f"Puzzle {int(target_id) + 1}"
+        scores, top_indices = score_target(words, embeddings, word, TOP_RANK_COUNT)
+        filename = f"puzzles/{target_id}.json"
+        expected_puzzle_files.add(paths.output / filename)
         write_json(
             paths.output / filename,
             {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "vocabularyVersion": version,
-                "targetKey": target,
+                "targetKey": word,
+                "category": target["category"],
                 "scores": scores,
                 "topIndices": top_indices,
             },
         )
-        puzzles.append({"id": target, "label": label, "file": filename})
+        puzzles.append({"id": target_id, "label": label, "file": filename})
+
+    puzzle_directory = paths.output / "puzzles"
+    if puzzle_directory.exists():
+        for existing in puzzle_directory.glob("*.json"):
+            if existing not in expected_puzzle_files:
+                existing.unlink()
 
     write_json(
         paths.manifest,
@@ -128,18 +182,22 @@ def generate(args: argparse.Namespace) -> None:
 
 def audit(args: argparse.Namespace) -> None:
     paths = Paths(output=args.output, cache=args.cache)
+    targets = load_targets(args.targets, TARGET_COUNT)
     vocabulary = read_json(paths.vocabulary)
     if not isinstance(vocabulary, dict) or not isinstance(vocabulary.get("keys"), list):
         raise ValueError("Generate the vocabulary before running an audit.")
     words = vocabulary["keys"]
 
-    for target, label in TARGETS:
-        puzzle = read_json(paths.output / f"puzzles/{target}.json")
+    for target in targets:
+        target_id = target["id"]
+        word = target["word"]
+        label = f"Puzzle {int(target_id) + 1}"
+        puzzle = read_json(paths.output / f"puzzles/{target_id}.json")
         if not isinstance(puzzle, dict):
-            raise ValueError(f"Invalid puzzle data for {target}.")
+            raise ValueError(f"Invalid puzzle data for {word}.")
         scores = puzzle["scores"]
         top_indices = puzzle["topIndices"]
-        print(f"\n{label}: {target}")
+        print(f'\n{label} [ID {target_id}] — {target["category"]}: {word}')
         for rank, index in enumerate(top_indices[: args.limit], start=1):
             print(f"{rank:>3}  {words[index]:<20} {scores[index] / 100:>7.2f}")
 
@@ -153,6 +211,7 @@ def parser() -> argparse.ArgumentParser:
         "--output", type=Path, default=Path("assets/semantic-game/data")
     )
     command_parser.add_argument("--cache", type=Path, default=Path("pipeline-cache"))
+    command_parser.add_argument("--targets", type=Path, default=TARGETS_FILE)
     command_parser.add_argument("--batch-size", type=int, default=64)
     command_parser.add_argument("--device", default=None)
     command_parser.add_argument("--force", action="store_true")
@@ -170,4 +229,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

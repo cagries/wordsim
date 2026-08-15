@@ -14,10 +14,13 @@ permalink: /semantic-game/
     <p>Find the hidden word. Meaning matters; spelling does not.</p>
   </header>
 
-  <section class="game-controls" aria-label="Puzzle controls">
-    <label for="puzzle-select">Puzzle</label>
-    <select id="puzzle-select" disabled></select>
-    <button id="reset-button" type="button" disabled>Reset</button>
+  <section class="puzzle-picker" aria-labelledby="puzzles-heading">
+    <div class="puzzle-heading">
+      <h2 id="puzzles-heading">Puzzles</h2>
+      <button id="reset-button" type="button" disabled>Reset selected</button>
+    </div>
+    <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
+    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span></p>
   </section>
 
   <form id="guess-form" class="guess-form" novalidate>
@@ -37,9 +40,12 @@ permalink: /semantic-game/
         disabled
       >
       <button id="guess-button" type="submit" disabled>Guess</button>
-      <button id="hint-button" class="hint-button" type="button" disabled>Hint</button>
+      <button id="word-hint-button" class="hint-button" type="button" disabled>Word hint</button>
+      <button id="category-hint-button" class="hint-button category-hint-button" type="button" disabled>Category hint</button>
     </div>
   </form>
+
+  <p id="category-clue" class="category-clue" hidden></p>
 
   <p id="status" class="status" role="status" aria-live="polite">Loading puzzles…</p>
 
@@ -58,7 +64,7 @@ permalink: /semantic-game/
           </tr>
         </thead>
         <tbody id="guess-history">
-          <tr id="empty-row"><td colspan="3">No guesses or hints yet.</td></tr>
+          <tr id="empty-row"><td colspan="3">No guesses or word hints yet.</td></tr>
         </tbody>
       </table>
     </div>
