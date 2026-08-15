@@ -1,7 +1,15 @@
-import type { GameAction, GuessResult, PuzzleData, TargetCategory, VocabularyData } from "./types";
+import type {
+  GameAction,
+  GameOutcome,
+  GuessResult,
+  PuzzleData,
+  TargetCategory,
+  VocabularyData,
+} from "./types";
 
 export type GuessErrorCode = "empty" | "invalid" | "unknown" | "duplicate" | "solved";
 export const CATEGORY_GUESS_REQUIREMENT = 10;
+export const CLOSEST_HINT_RANK = 3;
 
 export class GuessError extends Error {
   constructor(public readonly code: GuessErrorCode, message: string) {
@@ -26,7 +34,7 @@ export function encodeGuessKey(word: string, vocabulary: VocabularyData): string
 }
 
 export function canRevealCategoryHint(session: GameSession): boolean {
-  return !session.solved && session.getResultCounts().guesses >= CATEGORY_GUESS_REQUIREMENT;
+  return !session.complete && session.getResultCounts().guesses >= CATEGORY_GUESS_REQUIREMENT;
 }
 
 export class GameSession {
@@ -35,7 +43,7 @@ export class GameSession {
   private readonly guessedWords = new Set<string>();
   private results: GuessResult[] = [];
   private actions: GameAction[] = [];
-  private isSolved = false;
+  private currentOutcome: GameOutcome = "active";
 
   constructor(
     private readonly vocabulary: VocabularyData,
@@ -67,6 +75,11 @@ export class GameSession {
         if (!result || result.word !== action.word) {
           throw new Error("Saved hint does not match this puzzle.");
         }
+      } else if (action.source === "answer") {
+        const result = session.revealAnswer();
+        if (result.word !== action.word) {
+          throw new Error("Saved answer does not match this puzzle.");
+        }
       } else {
         throw new Error("Saved progress contains an unsupported action.");
       }
@@ -75,8 +88,11 @@ export class GameSession {
   }
 
   guess(rawValue: string): GuessResult {
-    if (this.isSolved) {
-      throw new GuessError("solved", "This puzzle is already solved. Reset it to play again.");
+    if (this.complete) {
+      const message = this.gaveUp
+        ? "This attempt has ended. Reset it to play again."
+        : "This puzzle is already solved. Reset it to play again.";
+      throw new GuessError("solved", message);
     }
 
     const word = normalizeGuess(rawValue);
@@ -109,7 +125,7 @@ export class GameSession {
   }
 
   getNextHintRank(): number | null {
-    if (this.isSolved) return null;
+    if (this.complete) return null;
 
     const rankedResults = this.results
       .map((result) => result.rank)
@@ -117,7 +133,7 @@ export class GameSession {
     const bestRank = rankedResults.length === 0 ? null : Math.min(...rankedResults);
     const nextRank = bestRank === null || bestRank > 20 ? 20 : bestRank - 1;
 
-    if (nextRank < 5 || nextRank > this.puzzle.topIndices.length) return null;
+    if (nextRank < CLOSEST_HINT_RANK || nextRank > this.puzzle.topIndices.length) return null;
     return nextRank;
   }
 
@@ -143,6 +159,26 @@ export class GameSession {
     return result;
   }
 
+  revealAnswer(): GuessResult {
+    if (this.complete) {
+      throw new Error("This puzzle is already complete. Reset it to play again.");
+    }
+    const index = this.indexByKey.get(this.puzzle.targetKey);
+    const score = index === undefined ? undefined : this.puzzle.scores[index];
+    if (index === undefined || score === undefined) {
+      throw new Error("The puzzle answer does not resolve to a vocabulary word.");
+    }
+    const result: GuessResult = {
+      word: this.puzzle.targetKey,
+      score,
+      rank: 1,
+      solved: false,
+      source: "answer",
+    };
+    this.recordResult(result, { word: result.word, source: "answer" });
+    return result;
+  }
+
   getResults(): readonly GuessResult[] {
     return this.results;
   }
@@ -156,13 +192,25 @@ export class GameSession {
     let hints = 0;
     for (const result of this.results) {
       if (result.source === "hint") hints += 1;
-      else guesses += 1;
+      else if (result.source === "guess") guesses += 1;
     }
     return { guesses, hints };
   }
 
   get solved(): boolean {
-    return this.isSolved;
+    return this.currentOutcome === "solved";
+  }
+
+  get gaveUp(): boolean {
+    return this.currentOutcome === "gave-up";
+  }
+
+  get complete(): boolean {
+    return this.currentOutcome !== "active";
+  }
+
+  get outcome(): GameOutcome {
+    return this.currentOutcome;
   }
 
   get category(): TargetCategory {
@@ -173,7 +221,7 @@ export class GameSession {
     this.guessedWords.clear();
     this.results = [];
     this.actions = [];
-    this.isSolved = false;
+    this.currentOutcome = "active";
   }
 
   private recordResult(result: GuessResult, action: GameAction): void {
@@ -181,6 +229,7 @@ export class GameSession {
     this.actions.push(action);
     this.results.push(result);
     this.results.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
-    this.isSolved = result.solved;
+    if (result.solved) this.currentOutcome = "solved";
+    else if (result.source === "answer") this.currentOutcome = "gave-up";
   }
 }

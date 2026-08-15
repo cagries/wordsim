@@ -3,6 +3,7 @@ import { loadCollection, loadPuzzle } from "./data";
 import {
   canRevealCategoryHint,
   CATEGORY_GUESS_REQUIREMENT,
+  CLOSEST_HINT_RANK,
   formatScore,
   GameSession,
   GuessError,
@@ -29,6 +30,7 @@ const dataRoot: string = configuredDataRoot;
 
 const puzzleGrid = requiredElement<HTMLElement>("puzzle-grid");
 const resetButton = requiredElement<HTMLButtonElement>("reset-button");
+const giveUpButton = requiredElement<HTMLButtonElement>("give-up-button");
 const form = requiredElement<HTMLFormElement>("guess-form");
 const input = requiredElement<HTMLInputElement>("guess-input");
 const guessButton = requiredElement<HTMLButtonElement>("guess-button");
@@ -53,7 +55,10 @@ try {
   // Browser privacy settings may make localStorage unavailable.
 }
 
-function setStatus(message: string, kind: "normal" | "error" | "success" = "normal"): void {
+function setStatus(
+  message: string,
+  kind: "normal" | "error" | "success" | "revealed" = "normal",
+): void {
   status.textContent = message;
   status.dataset.kind = kind;
 }
@@ -82,6 +87,7 @@ function syncActiveProgress(): void {
     actions: [...session.getActions()],
     categoryRevealed: previous?.categoryRevealed ?? false,
     solved: session.solved,
+    gaveUp: session.gaveUp,
   };
   persist();
 }
@@ -93,7 +99,9 @@ function updateHintControls(): void {
 
   const guesses = session?.getResultCounts().guesses ?? 0;
   const revealed = categoryIsRevealed();
-  if (!session || session.solved) {
+  giveUpButton.disabled = !session || session.complete;
+
+  if (!session || session.complete) {
     categoryHintButton.disabled = true;
     categoryHintButton.textContent = "Category hint";
   } else if (revealed) {
@@ -135,12 +143,18 @@ function renderResults(results: readonly GuessResult[]): void {
   for (const result of results) {
     const row = history.insertRow();
     if (result.solved) row.className = "solved-row";
+    if (result.source === "answer") row.className = "answer-row";
     const wordCell = row.insertCell();
     wordCell.append(result.word);
     if (result.source === "hint") {
       const badge = document.createElement("span");
       badge.className = "hint-badge";
       badge.textContent = "Hint";
+      wordCell.append(badge);
+    } else if (result.source === "answer") {
+      const badge = document.createElement("span");
+      badge.className = "answer-badge";
+      badge.textContent = "Answer";
       wordCell.append(badge);
     }
     row.insertCell().textContent = formatScore(result.score);
@@ -156,16 +170,26 @@ function renderPuzzleGrid(): void {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "puzzle-button";
-      button.dataset.state = saved?.solved ? "solved" : started ? "started" : "untouched";
+      button.dataset.state = saved?.solved
+        ? "solved"
+        : saved?.gaveUp
+          ? "revealed"
+          : started
+            ? "started"
+            : "untouched";
       if (activePuzzle?.id === puzzle.id) {
         button.classList.add("selected");
         button.setAttribute("aria-current", "page");
       }
       const visibleNumber = index + 1;
-      button.textContent = saved?.solved ? `${visibleNumber} ✓` : String(visibleNumber);
+      button.textContent = saved?.solved
+        ? `${visibleNumber} ✓`
+        : saved?.gaveUp
+          ? `${visibleNumber} ×`
+          : String(visibleNumber);
       button.setAttribute(
         "aria-label",
-        `Puzzle ${visibleNumber}${saved?.solved ? ", solved" : started ? ", started" : ""}`,
+        `Puzzle ${visibleNumber}${saved?.solved ? ", solved" : saved?.gaveUp ? ", answer revealed" : started ? ", started" : ""}`,
       );
       button.addEventListener("click", () => void selectPuzzle(puzzle));
       return button;
@@ -183,6 +207,10 @@ function activateSession(puzzle: PuzzleSummary, loadedSession: GameSession): voi
   if (session.solved) {
     const answer = session.getResults().find((result) => result.solved)?.word ?? "the target";
     setStatus(`Solved! The word was “${answer}”.`, "success");
+    setGuessingEnabled(false);
+  } else if (session.gaveUp) {
+    const answer = session.getResults().find((result) => result.source === "answer")?.word ?? "the target";
+    setStatus(`You gave up. The word was “${answer}”.`, "revealed");
     setGuessingEnabled(false);
   } else {
     setGuessingEnabled(true);
@@ -208,6 +236,7 @@ async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
   setGuessingEnabled(false);
   updateHintControls();
   resetButton.disabled = true;
+  giveUpButton.disabled = true;
   renderResults([]);
   setStatus(`Loading ${puzzle.label}…`);
 
@@ -232,6 +261,7 @@ async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
         actions: [...loadedSession.getActions()],
         categoryRevealed: restored.categoryRevealed,
         solved: loadedSession.solved,
+        gaveUp: loadedSession.gaveUp,
       };
       persist();
     }
@@ -292,7 +322,7 @@ wordHintButton.addEventListener("click", () => {
     renderPuzzleGrid();
     renderResults(session.getResults());
     updateHintControls();
-    const suffix = result.rank === 5 ? " This is the closest available hint." : "";
+    const suffix = result.rank === CLOSEST_HINT_RANK ? " This is the closest available hint." : "";
     setStatus(`Hint: “${result.word}” is ranked #${result.rank}.${suffix}`);
     input.focus();
   } catch (error) {
@@ -301,12 +331,13 @@ wordHintButton.addEventListener("click", () => {
 });
 
 categoryHintButton.addEventListener("click", () => {
-  if (!session || !activePuzzle || session.solved || categoryIsRevealed()) return;
+  if (!session || !activePuzzle || session.complete || categoryIsRevealed()) return;
   if (!canRevealCategoryHint(session)) return;
   progress.puzzles[activePuzzle.id] = {
     actions: [...session.getActions()],
     categoryRevealed: true,
     solved: session.solved,
+    gaveUp: session.gaveUp,
   };
   persist();
   renderPuzzleGrid();
@@ -314,6 +345,23 @@ categoryHintButton.addEventListener("click", () => {
   updateHintControls();
   setStatus(`Category revealed: ${session.category}.`);
   input.focus();
+});
+
+giveUpButton.addEventListener("click", () => {
+  if (!session || !activePuzzle || session.complete) return;
+  if (!window.confirm("Reveal the answer and end this attempt?")) return;
+  try {
+    const result = session.revealAnswer();
+    input.value = "";
+    syncActiveProgress();
+    renderPuzzleGrid();
+    renderResults(session.getResults());
+    updateHintControls();
+    setGuessingEnabled(false);
+    setStatus(`You gave up. The word was “${result.word}”.`, "revealed");
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Could not reveal the answer.", "error");
+  }
 });
 
 async function initialize(): Promise<void> {

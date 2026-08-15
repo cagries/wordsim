@@ -41,10 +41,13 @@ button:hover:not(:disabled) { border-color: #176b50; }
 
 .puzzle-heading { display: flex; align-items: center; justify-content: space-between; }
 .puzzle-heading h2 { margin: 0 0 0.75rem; }
+.puzzle-heading button { margin-bottom: 0.75rem; }
+.give-up-button { border-color: #a45432; color: #853c20; }
 .puzzle-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.4rem; }
 .puzzle-button { min-width: 0; padding: 0.55rem 0.25rem; font-variant-numeric: tabular-nums; }
 .puzzle-button[data-state="started"] { border-color: #b79a3c; background: #fff5cf; color: #5a4710; }
 .puzzle-button[data-state="solved"] { border-color: #176b50; background: #d8f0e5; color: #104c39; font-weight: 750; }
+.puzzle-button[data-state="revealed"] { border-color: #a45432; background: #f6dfd3; color: #74351e; font-weight: 750; }
 .puzzle-button.selected { outline: 3px solid #176b50; outline-offset: 1px; }
 .puzzle-legend { display: flex; gap: 1rem; margin: 0.65rem 0 0; color: #62645f; font-size: 0.85rem; }
 
@@ -52,6 +55,9 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .guess-row { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
 .guess-row input { min-width: 0; flex: 1; padding: 0.75rem; }
 .guess-row button { font-weight: 700; }
+.assistance-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.6rem; }
+.assistance-row button { font-weight: 700; }
+.assistance-row .give-up-button { margin-left: auto; }
 #guess-button { background: #176b50; border-color: #176b50; color: white; }
 .hint-button { background: #fff5cf; border-color: #b79a3c; color: #5a4710; }
 .category-hint-button { white-space: nowrap; }
@@ -69,6 +75,7 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .status { min-height: 1.5rem; color: #62645f; }
 .status[data-kind="error"] { color: #a02828; }
 .status[data-kind="success"] { color: #176b50; font-weight: 700; }
+.status[data-kind="revealed"] { color: #853c20; font-weight: 700; }
 
 .history-heading { display: flex; align-items: baseline; justify-content: space-between; }
 .history-heading h2 { margin-bottom: 0.5rem; }
@@ -78,7 +85,8 @@ table { width: 100%; border-collapse: collapse; background: #fffdf8; }
 th, td { border-bottom: 1px solid #d7d2c8; padding: 0.7rem; text-align: left; }
 th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
 .solved-row { background: #d8f0e5; font-weight: 700; }
-.hint-badge {
+.answer-row { background: #f6dfd3; font-weight: 700; }
+.hint-badge, .answer-badge {
   display: inline-block;
   margin-left: 0.45rem;
   padding: 0.1rem 0.35rem;
@@ -91,6 +99,7 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   text-transform: uppercase;
   vertical-align: 0.1em;
 }
+.answer-badge { background: #e5b9a3; color: #612b17; }
 #empty-row td { color: #777872; text-align: center; }
 
 @media (prefers-color-scheme: dark) {
@@ -102,10 +111,14 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .hint-button { background: #514319; border-color: #8d7939; color: #ffecac; }
   .puzzle-button[data-state="started"] { background: #514319; border-color: #8d7939; color: #ffecac; }
   .puzzle-button[data-state="solved"] { background: #164f3a; border-color: #71d3ad; color: #c7f5e2; }
+  .puzzle-button[data-state="revealed"] { background: #542b1d; border-color: #d18b69; color: #ffd5c1; }
   .puzzle-button.selected { outline-color: #71d3ad; }
   .puzzle-legend { color: #afb5a8; }
   .category-clue { background: #39305e; color: #ded7ff; }
   .hint-badge { background: #66551c; color: #ffecac; }
+  .answer-row { background: #542b1d; }
+  .answer-badge { background: #743922; color: #ffd5c1; }
+  .give-up-button, .status[data-kind="revealed"] { border-color: #d18b69; color: #ffb996; }
   th, td { border-color: #43483f; }
 }
 
@@ -115,7 +128,6 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
 
 @media (max-width: 32rem) {
   .puzzle-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .guess-row { flex-wrap: wrap; }
-  .guess-row input { flex-basis: 100%; }
-  .guess-row button { flex: 1; }
+  .assistance-row button { flex: 1 1 auto; }
+  .assistance-row .give-up-button { margin-left: 0; }
 }

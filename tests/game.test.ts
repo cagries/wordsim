@@ -148,7 +148,7 @@ describe("GameSession hints", () => {
     assert.equal(session.revealHint()?.rank, 11);
   });
 
-  it("progresses one rank at a time and stops after rank 5", () => {
+  it("progresses one rank at a time and stops after rank 3", () => {
     const session = new GameSession(hintVocabulary, hintPuzzle);
     const ranks: number[] = [];
     while (session.getNextHintRank() !== null) {
@@ -156,13 +156,13 @@ describe("GameSession hints", () => {
       assert.ok(hint);
       ranks.push(hint.rank as number);
     }
-    assert.deepEqual(ranks, Array.from({ length: 16 }, (_, index) => 20 - index));
+    assert.deepEqual(ranks, Array.from({ length: 18 }, (_, index) => 20 - index));
     assert.equal(session.revealHint(), null);
   });
 
-  it("offers no hint when a player is already better than rank 5", () => {
+  it("offers no hint when a player is already at rank 3", () => {
     const session = new GameSession(hintVocabulary, hintPuzzle);
-    assert.equal(session.guess("wordd").rank, 4);
+    assert.equal(session.guess("wordc").rank, 3);
     assert.equal(session.getNextHintRank(), null);
   });
 
@@ -219,6 +219,49 @@ describe("GameSession hints", () => {
     assert.equal(session.solved, false);
     assert.equal(session.getNextHintRank(), 20);
     assert.equal(canRevealCategoryHint(session), false);
+  });
+});
+
+describe("giving up", () => {
+  it("reveals the answer without counting it as a guess or hint", () => {
+    const session = new GameSession(vocabulary, puzzle);
+    session.guess("cold");
+    assert.deepEqual(session.revealAnswer(), {
+      word: "target",
+      score: 10_000,
+      rank: 1,
+      solved: false,
+      source: "answer",
+    });
+    assert.equal(session.outcome, "gave-up");
+    assert.equal(session.gaveUp, true);
+    assert.equal(session.solved, false);
+    assert.equal(session.complete, true);
+    assert.deepEqual(session.getResultCounts(), { guesses: 1, hints: 0 });
+    assert.throws(() => session.guess("warm"), /attempt has ended/);
+    assert.equal(session.revealHint(), null);
+  });
+
+  it("restores and validates an answer reveal", () => {
+    const session = new GameSession(vocabulary, puzzle);
+    session.guess("warm");
+    session.revealAnswer();
+    const restored = GameSession.restore(vocabulary, puzzle, session.getActions());
+    assert.equal(restored.gaveUp, true);
+    assert.deepEqual(restored.getActions(), session.getActions());
+    assert.throws(
+      () => GameSession.restore(vocabulary, puzzle, [{ source: "answer", word: "warm" }]),
+      /does not match/,
+    );
+  });
+
+  it("can be retried after reset", () => {
+    const session = new GameSession(vocabulary, puzzle);
+    session.revealAnswer();
+    session.reset();
+    assert.equal(session.outcome, "active");
+    assert.equal(session.complete, false);
+    assert.equal(session.guess("warm").word, "warm");
   });
 });
 

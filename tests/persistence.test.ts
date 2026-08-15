@@ -29,11 +29,13 @@ describe("progress persistence", () => {
       actions: [{ source: "guess", word: "music" }],
       categoryRevealed: false,
       solved: false,
+      gaveUp: false,
     };
     progress.puzzles["1"] = {
       actions: [{ source: "hint", word: "terminal" }],
       categoryRevealed: true,
       solved: true,
+      gaveUp: false,
     };
     saveProgress(storage, progress);
     assert.deepEqual(loadProgress(storage, "v1", ["0", "1"]), progress);
@@ -53,6 +55,45 @@ describe("progress persistence", () => {
     assert.deepEqual(loadProgress(storage, "v1", ["0"]), emptyProgress("v1", "0"));
   });
 
+  it("migrates existing puzzle progress without a gave-up flag", () => {
+    const storage = new MemoryStorage();
+    storage.value = JSON.stringify({
+      schemaVersion: 1,
+      vocabularyVersion: "v1",
+      selectedPuzzleId: "0",
+      puzzles: {
+        "0": {
+          actions: [{ source: "guess", word: "music" }],
+          categoryRevealed: false,
+          solved: false,
+        },
+      },
+    });
+    assert.deepEqual(loadProgress(storage, "v1", ["0"]).puzzles["0"], {
+      actions: [{ source: "guess", word: "music" }],
+      categoryRevealed: false,
+      solved: false,
+      gaveUp: false,
+    });
+  });
+
+  it("derives the revealed state from a saved answer action", () => {
+    const storage = new MemoryStorage();
+    storage.value = JSON.stringify({
+      schemaVersion: 1,
+      vocabularyVersion: "v1",
+      selectedPuzzleId: "0",
+      puzzles: {
+        "0": {
+          actions: [{ source: "answer", word: "violin" }],
+          categoryRevealed: false,
+          solved: false,
+        },
+      },
+    });
+    assert.equal(loadProgress(storage, "v1", ["0"]).puzzles["0"]?.gaveUp, true);
+  });
+
   it("drops unknown puzzle IDs and malformed puzzle entries", () => {
     const storage = new MemoryStorage();
     storage.value = JSON.stringify({
@@ -69,7 +110,7 @@ describe("progress persistence", () => {
       schemaVersion: 1,
       vocabularyVersion: "v1",
       selectedPuzzleId: "0",
-      puzzles: { "0": { actions: [], categoryRevealed: false, solved: false } },
+      puzzles: { "0": { actions: [], categoryRevealed: false, solved: false, gaveUp: false } },
     });
   });
 });

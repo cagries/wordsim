@@ -6,21 +6,30 @@ function isAction(value: unknown): value is GameAction {
   if (!value || typeof value !== "object") return false;
   const action = value as Partial<GameAction>;
   return (
-    (action.source === "guess" || action.source === "hint") &&
+    (action.source === "guess" || action.source === "hint" || action.source === "answer") &&
     typeof action.word === "string" &&
     /^[a-z]+$/.test(action.word)
   );
 }
 
-function isSavedPuzzle(value: unknown): value is SavedPuzzleProgress {
-  if (!value || typeof value !== "object") return false;
+function normalizeSavedPuzzle(value: unknown): SavedPuzzleProgress | null {
+  if (!value || typeof value !== "object") return null;
   const puzzle = value as Partial<SavedPuzzleProgress>;
-  return (
-    Array.isArray(puzzle.actions) &&
-    puzzle.actions.every(isAction) &&
-    typeof puzzle.categoryRevealed === "boolean" &&
-    typeof puzzle.solved === "boolean"
-  );
+  if (
+    !Array.isArray(puzzle.actions) ||
+    !puzzle.actions.every(isAction) ||
+    typeof puzzle.categoryRevealed !== "boolean" ||
+    typeof puzzle.solved !== "boolean" ||
+    (puzzle.gaveUp !== undefined && typeof puzzle.gaveUp !== "boolean")
+  ) {
+    return null;
+  }
+  return {
+    actions: puzzle.actions,
+    categoryRevealed: puzzle.categoryRevealed,
+    solved: puzzle.solved,
+    gaveUp: Boolean(puzzle.gaveUp || puzzle.actions.some((action) => action.source === "answer")),
+  };
 }
 
 export function emptyProgress(vocabularyVersion: string, selectedPuzzleId: string): StoredProgress {
@@ -54,7 +63,8 @@ export function loadProgress(
     const validIds = new Set(puzzleIds);
     const puzzles: Record<string, SavedPuzzleProgress> = {};
     for (const [id, puzzle] of Object.entries(value.puzzles)) {
-      if (validIds.has(id) && isSavedPuzzle(puzzle)) puzzles[id] = puzzle;
+      const normalized = normalizeSavedPuzzle(puzzle);
+      if (validIds.has(id) && normalized) puzzles[id] = normalized;
     }
     return {
       schemaVersion: 1,

@@ -20,7 +20,7 @@ permalink: /semantic-game/
       <button id="reset-button" type="button" disabled>Reset selected</button>
     </div>
     <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
-    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span></p>
+    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span><span>× Answer revealed</span></p>
   </section>
 
   <form id="guess-form" class="guess-form" novalidate>
@@ -40,8 +40,11 @@ permalink: /semantic-game/
         disabled
       >
       <button id="guess-button" type="submit" disabled>Guess</button>
+    </div>
+    <div class="assistance-row" aria-label="Hints and answer controls">
       <button id="word-hint-button" class="hint-button" type="button" disabled>Word hint</button>
       <button id="category-hint-button" class="hint-button category-hint-button" type="button" disabled>Category hint</button>
+      <button id="give-up-button" class="give-up-button" type="button" disabled>Give up</button>
     </div>
   </form>
 

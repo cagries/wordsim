@@ -4,7 +4,7 @@ A small Semantle-like game that scores guesses by semantic similarity. The websi
 
 The demo contains 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets.json`; Puzzle 1 is violin and Puzzle 2 is airport. EmbeddingGemma is the only active extractor in this version. The browser downloads a shared 30,000-word vocabulary and one compact score table at a time.
 
-Players choose puzzles from a responsive numbered grid. Started and solved puzzles are marked, and progress for every puzzle is saved in browser-local storage. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 5. A separate category hint unlocks after 10 accepted player guesses; invalid guesses and word hints do not advance that threshold.
+Players choose puzzles from a responsive numbered grid. Started, solved, and answer-revealed puzzles are marked separately, and progress for every puzzle is saved in browser-local storage. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 3 so that the answer and its nearest neighbor remain hidden. A separate category hint unlocks after 10 accepted player guesses; invalid guesses and word hints do not advance that threshold. Players may also give up at any time, confirm the choice, and reveal the answer without counting the puzzle as solved.
 
 ## Prerequisites
 
@@ -65,7 +65,7 @@ Measured static data sizes for the current build are:
 | Top-1,000 ranks for one puzzle | about 5.6 KB | about 2.7 KB |
 | Complete puzzle file | about 155.7 KB | about 60 KB |
 
-The first puzzle therefore requires about 461 KB of raw game data, or 179 KB with gzip, including the shared vocabulary and manifest. Each later puzzle requires only its approximately 156 KB raw / 60 KB compressed table. The current minified JavaScript and CSS add about 13 KB raw.
+The first puzzle therefore requires about 461 KB of raw game data, or 179 KB with gzip, including the shared vocabulary and manifest. Each later puzzle requires only its approximately 156 KB raw / 60 KB compressed table. The current minified JavaScript and CSS add about 16 KB raw.
 
 For the generated 50-puzzle collection, the complete static data is:
 

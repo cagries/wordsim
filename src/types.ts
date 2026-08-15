@@ -42,18 +42,21 @@ export interface GuessResult {
   score: number;
   rank: number | null;
   solved: boolean;
-  source: "guess" | "hint";
+  source: "guess" | "hint" | "answer";
 }
 
 export interface GameAction {
   word: string;
-  source: "guess" | "hint";
+  source: "guess" | "hint" | "answer";
 }
+
+export type GameOutcome = "active" | "solved" | "gave-up";
 
 export interface SavedPuzzleProgress {
   actions: GameAction[];
   categoryRevealed: boolean;
   solved: boolean;
+  gaveUp: boolean;
 }
 
 export interface StoredProgress {
