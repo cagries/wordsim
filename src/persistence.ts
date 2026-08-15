@@ -1,6 +1,6 @@
 import type { GameAction, SavedPuzzleProgress, StoredProgress } from "./types";
 
-export const PROGRESS_STORAGE_KEY = "semantic-game.progress.v1";
+export const PROGRESS_STORAGE_KEY = "wordsim.progress.v1";
 
 function isAction(value: unknown): value is GameAction {
   if (!value || typeof value !== "object") return false;

@@ -1,6 +1,6 @@
-# Semantic Game
+# wordsim
 
-A small Semantle-like game that scores guesses by semantic similarity. The website is a static Jekyll page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline.
+A small game that scores guesses by semantic similarity. The website is a static Jekyll page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline.
 
 The demo contains 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets.json`; Puzzle 1 is violin and Puzzle 2 is airport. EmbeddingGemma is the only active extractor in this version. The browser downloads a shared 30,000-word vocabulary and one compact score table at a time.
 
@@ -40,7 +40,7 @@ Generation performs the following work:
 2. Encodes `task: sentence similarity | query: <word>` with the pinned EmbeddingGemma revision.
 3. Stores normalized embeddings in `pipeline-cache/embeddings.npy` for reuse.
 4. Reads the 50 stable IDs, words, and categories from `pipeline/targets.json`.
-5. Writes the versioned vocabulary, collection manifest, and 50 minified puzzle tables to `assets/semantic-game/data/`.
+5. Writes the versioned vocabulary, collection manifest, and 50 minified puzzle tables to `assets/wordsim/data/`.
 
 Useful generator options include `--device mps`, `--device cuda`, `--batch-size N`, `--targets PATH`, and `--force`. The default uses the framework-selected device and float32 model activations. A valid generated vocabulary and embedding cache can be reused without loading the model dependencies; a fresh vocabulary still requires `wordfreq`. Embedding regeneration is automatic if the model, prompt, Sentence Transformers version, or vocabulary checksum changes.
 
@@ -83,13 +83,13 @@ npm run build:game
 bundle exec jekyll serve
 ```
 
-Open `http://localhost:4000/semantic-game/`. To test a non-empty Jekyll base path:
+Open `http://localhost:4000/wordsim/`. To test a non-empty Jekyll base path:
 
 ```sh
 bundle exec jekyll serve --baseurl /example
 ```
 
-Then open `http://localhost:4000/example/semantic-game/`.
+Then open `http://localhost:4000/example/wordsim/`.
 
 The repository intentionally contains no deployment workflow. `npm run build:site` bundles the browser code and creates the local `_site/` output.
 

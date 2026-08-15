@@ -1,3 +1,0 @@
-numpy<3,>=2.0
-sentence-transformers==5.7.0
-wordfreq<4,>=3.1

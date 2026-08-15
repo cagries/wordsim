@@ -23,7 +23,7 @@ function requiredElement<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
-const root = requiredElement<HTMLElement>("semantic-game");
+const root = requiredElement<HTMLElement>("wordsim");
 const configuredDataRoot = root.dataset.dataRoot;
 if (!configuredDataRoot) throw new Error("The game data path is missing.");
 const dataRoot: string = configuredDataRoot;

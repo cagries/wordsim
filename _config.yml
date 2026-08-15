@@ -1,4 +1,4 @@
-title: Semantic Game
+title: wordsim
 description: Guess a word from semantic similarity.
 baseurl: ""
 url: ""
@@ -15,4 +15,3 @@ exclude:
   - README.md
   - THIRD_PARTY_NOTICES.md
   - tsconfig.json
-

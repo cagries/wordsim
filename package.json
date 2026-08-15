@@ -1,10 +1,10 @@
 {
-  "name": "semantic-game",
+  "name": "wordsim",
   "private": true,
   "scripts": {
-    "build:game": "esbuild src/main.ts --bundle --minify --sourcemap --outfile=assets/semantic-game/app.js",
+    "build:game": "esbuild src/main.ts --bundle --minify --sourcemap --outfile=assets/wordsim/app.js",
     "build:site": "npm run build:game && bundle exec jekyll build",
-    "watch:game": "esbuild src/main.ts --bundle --sourcemap --outfile=assets/semantic-game/app.js --watch",
+    "watch:game": "esbuild src/main.ts --bundle --sourcemap --outfile=assets/wordsim/app.js --watch",
     "test": "esbuild tests/*.test.ts --bundle --platform=node --format=cjs --outdir=.test-build && node --test .test-build/*.test.js"
   },
   "devDependencies": {

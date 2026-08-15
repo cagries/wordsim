@@ -203,12 +203,12 @@ def audit(args: argparse.Namespace) -> None:
 
 
 def parser() -> argparse.ArgumentParser:
-    command_parser = argparse.ArgumentParser(description="Generate semantic game data.")
+    command_parser = argparse.ArgumentParser(description="Generate wordsim data.")
     command_parser.add_argument(
         "command", choices=("generate", "audit"), help="Pipeline operation to run."
     )
     command_parser.add_argument(
-        "--output", type=Path, default=Path("assets/semantic-game/data")
+        "--output", type=Path, default=Path("assets/wordsim/data")
     )
     command_parser.add_argument("--cache", type=Path, default=Path("pipeline-cache"))
     command_parser.add_argument("--targets", type=Path, default=TARGETS_FILE)
