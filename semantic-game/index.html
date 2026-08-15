@@ -11,17 +11,8 @@ permalink: /semantic-game/
 >
   <header class="game-header">
     <h1><a class="home-link" href="{{ '/' | relative_url }}">Semantic Game</a></h1>
-    <p>Find the hidden word. Meaning matters; spelling does not.</p>
+    <p>Guess the hidden word!</p>
   </header>
-
-  <section class="puzzle-picker" aria-labelledby="puzzles-heading">
-    <div class="puzzle-heading">
-      <h2 id="puzzles-heading">Puzzles</h2>
-      <button id="reset-button" type="button" disabled>Reset selected</button>
-    </div>
-    <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
-    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span><span>× Answer revealed</span></p>
-  </section>
 
   <form id="guess-form" class="guess-form" novalidate>
     <label for="guess-input">Your guess</label>
@@ -72,4 +63,15 @@ permalink: /semantic-game/
       </table>
     </div>
   </section>
+
+  <section class="puzzle-picker" aria-labelledby="puzzles-heading">
+    <div class="puzzle-heading">
+      <h2 id="puzzles-heading">Puzzles</h2>
+      <button id="reset-button" type="button" disabled>Reset selected puzzle</button>
+    </div>
+    <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
+    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span><span>× Answer revealed</span></p>
+  </section>
+
+
 </main>
