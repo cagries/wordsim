@@ -1,0 +1,18 @@
+title: Semantic Game
+description: Guess a word from semantic similarity.
+baseurl: ""
+url: ""
+exclude:
+  - game
+  - node_modules
+  - pipeline
+  - pipeline-cache
+  - tests
+  - Gemfile.lock
+  - package-lock.json
+  - package.json
+  - pyproject.toml
+  - README.md
+  - THIRD_PARTY_NOTICES.md
+  - tsconfig.json
+

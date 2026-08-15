@@ -1,0 +1,65 @@
+---
+layout: default
+title: Semantic Game
+game: true
+permalink: /semantic-game/
+---
+<main
+  id="semantic-game"
+  class="game-shell"
+  data-data-root="{{ '/assets/semantic-game/data' | relative_url }}"
+>
+  <header class="game-header">
+    <h1><a class="home-link" href="{{ '/' | relative_url }}">Semantic Game</a></h1>
+    <p>Find the hidden word. Meaning matters; spelling does not.</p>
+  </header>
+
+  <section class="game-controls" aria-label="Puzzle controls">
+    <label for="puzzle-select">Puzzle</label>
+    <select id="puzzle-select" disabled></select>
+    <button id="reset-button" type="button" disabled>Reset</button>
+  </section>
+
+  <form id="guess-form" class="guess-form" novalidate>
+    <label for="guess-input">Your guess</label>
+    <div class="guess-row">
+      <input
+        id="guess-input"
+        name="guess"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        pattern="[A-Za-z]+"
+        maxlength="64"
+        required
+        disabled
+      >
+      <button id="guess-button" type="submit" disabled>Guess</button>
+    </div>
+  </form>
+
+  <p id="status" class="status" role="status" aria-live="polite">Loading puzzles…</p>
+
+  <section aria-labelledby="guesses-heading">
+    <div class="history-heading">
+      <h2 id="guesses-heading">Guesses</h2>
+      <span id="guess-count">0</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Word</th>
+            <th scope="col">Similarity</th>
+            <th scope="col">Proximity</th>
+          </tr>
+        </thead>
+        <tbody id="guess-history">
+          <tr id="empty-row"><td colspan="3">No guesses yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,15 @@
+{
+  "name": "semantic-game",
+  "private": true,
+  "scripts": {
+    "build:game": "esbuild src/main.ts --bundle --minify --sourcemap --outfile=assets/semantic-game/app.js",
+    "build:site": "npm run build:game && bundle exec jekyll build",
+    "watch:game": "esbuild src/main.ts --bundle --sourcemap --outfile=assets/semantic-game/app.js --watch",
+    "test": "esbuild tests/*.test.ts --bundle --platform=node --format=cjs --outdir=.test-build && node --test .test-build/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.7.0"
+  }
+}

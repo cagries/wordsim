@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="{{ page.description | default: site.description }}">
+    <title>{{ page.title | default: site.title }}</title>
+    {% if page.game %}
+      <link rel="stylesheet" href="{{ '/assets/semantic-game/app.css' | relative_url }}">
+    {% endif %}
+  </head>
+  <body>
+    {{ content }}
+    {% if page.game %}
+      <script type="module" src="{{ '/assets/semantic-game/app.js' | relative_url }}"></script>
+    {% endif %}
+  </body>
+</html>
+
