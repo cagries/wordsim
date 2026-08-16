@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   canRevealCategoryHint,
+  CATEGORY_GUESS_REQUIREMENT,
   encodeGuessKey,
   formatScore,
   GameSession,
@@ -282,11 +283,11 @@ describe("category hint access", () => {
     topIndices: categoryVocabulary.keys.map((_, index) => index),
   };
 
-  it("unlocks on the tenth accepted player guess", () => {
+  it("unlocks after the required number of accepted player guesses", () => {
     const session = new GameSession(categoryVocabulary, categoryPuzzle);
-    for (const word of words.slice(0, 9)) session.guess(word);
+    for (const word of words.slice(0, CATEGORY_GUESS_REQUIREMENT - 1)) session.guess(word);
     assert.equal(canRevealCategoryHint(session), false);
-    session.guess(words[9]);
+    session.guess(words[CATEGORY_GUESS_REQUIREMENT - 1]);
     assert.equal(canRevealCategoryHint(session), true);
   });
 

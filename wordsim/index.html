@@ -11,7 +11,19 @@
 <main id="wordsim" class="game-shell" data-data-root="./data">
   <header class="game-header">
     <h1><a class="home-link" href="../">wordsim</a></h1>
-    <p>Guess the hidden word!</p>
+    <p>Guess the hidden word.</p>
+    <details class="how-to-play">
+      <summary>How to play?</summary>
+      <div class="how-to-content">
+        <p>Find the hidden word by guessing one common English word at a time.</p>
+        <ul>
+          <li><strong>First guess:</strong> You start with no prior information, guess anything! </li>
+          <li><strong>Similarity:</strong> Higher scores mean the words are closer in meaning, with 100 being the maximum.</li>
+          <li><strong>Ranking:</strong> Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words.</li>
+          <li><strong>Hints:</strong> Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.</li>
+        </ul>
+      </div>
+    </details>
   </header>
 
   <form id="guess-form" class="guess-form" novalidate>
@@ -43,7 +55,12 @@
 
   <p id="status" class="status" role="status" aria-live="polite">Loading puzzles…</p>
 
-  <section id="history-section" aria-labelledby="guesses-heading" hidden>
+  <section
+    id="history-section"
+    aria-labelledby="guesses-heading"
+    aria-hidden="true"
+    data-empty="true"
+  >
     <div class="history-heading">
       <h2 id="guesses-heading">History</h2>
       <span id="history-count">0 guesses · 0 hints</span>
@@ -57,7 +74,13 @@
             <th scope="col">Ranking</th>
           </tr>
         </thead>
-        <tbody id="guess-history"></tbody>
+        <tbody id="guess-history">
+          <tr class="history-placeholder">
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </section>

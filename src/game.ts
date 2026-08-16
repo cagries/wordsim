@@ -8,7 +8,7 @@ import type {
 } from "./types";
 
 export type GuessErrorCode = "empty" | "invalid" | "unknown" | "duplicate" | "solved";
-export const CATEGORY_GUESS_REQUIREMENT = 10;
+export const CATEGORY_GUESS_REQUIREMENT = 5;
 export const CLOSEST_HINT_RANK = 3;
 
 export class GuessError extends Error {

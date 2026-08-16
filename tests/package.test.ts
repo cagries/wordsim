@@ -21,6 +21,20 @@ describe("standalone package", () => {
     assert.doesNotMatch(indexHtml, /\{[{%]/);
   });
 
+  it("reserves one invisible history row before the first result", () => {
+    assert.match(indexHtml, /id="history-section"[\s\S]*?aria-hidden="true"[\s\S]*?data-empty="true"/);
+    assert.match(indexHtml, /<tr class="history-placeholder">/);
+    assert.doesNotMatch(indexHtml, /id="history-section"[^>]*\shidden(?:[\s>])/);
+  });
+
+  it("includes a collapsed, native how-to-play disclosure", () => {
+    assert.match(indexHtml, /<details class="how-to-play">\s*<summary>How to play\??<\/summary>/);
+    assert.doesNotMatch(indexHtml, /<details class="how-to-play"[^>]*\sopen(?:[\s>])/);
+    for (const text of ["Similarity:", "Ranking:", "cold", "category hint"]) {
+      assert.match(indexHtml, new RegExp(text, "i"));
+    }
+  });
+
   it("contains every runtime file referenced by the collection", () => {
     for (const file of ["app.js", "app.css", "data/collection.json"]) {
       assert.equal(statSync(path.join(packageRoot, file)).isFile(), true);

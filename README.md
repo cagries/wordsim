@@ -4,7 +4,7 @@ A small game that scores guesses by semantic similarity. The game is a standalon
 
 The demo contains 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets.json`; Puzzle 1 is violin and Puzzle 2 is airport. EmbeddingGemma is the only active extractor in this version. The browser downloads a shared 30,000-word vocabulary and one compact score table at a time.
 
-Players choose puzzles from a responsive numbered grid. Started, solved, and answer-revealed puzzles are marked separately, and progress for every puzzle is saved in browser-local storage. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 3 so that the answer and its nearest neighbor remain hidden. A separate category hint unlocks after 10 accepted player guesses; invalid guesses and word hints do not advance that threshold. Players may also give up at any time, confirm the choice, and reveal the answer without counting the puzzle as solved.
+Players choose puzzles from a responsive numbered grid. Started, solved, and answer-revealed puzzles are marked separately, and progress for every puzzle is saved in browser-local storage. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 3 so that the answer and its nearest neighbor remain hidden. A separate category hint unlocks after 5 accepted player guesses; invalid guesses and word hints do not advance that threshold. Players may also give up at any time, confirm the choice, and reveal the answer without counting the puzzle as solved.
 
 ## Prerequisites
 

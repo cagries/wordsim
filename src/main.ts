@@ -127,13 +127,21 @@ function updateHintControls(): void {
 }
 
 function renderResults(results: readonly GuessResult[]): void {
-  historySection.hidden = results.length === 0;
+  const empty = results.length === 0;
+  historySection.dataset.empty = String(empty);
+  if (empty) historySection.setAttribute("aria-hidden", "true");
+  else historySection.removeAttribute("aria-hidden");
   history.replaceChildren();
   const counts = session?.getResultCounts() ?? { guesses: 0, hints: 0 };
   const hintCount = counts.hints + (categoryIsRevealed() ? 1 : 0);
   historyCount.textContent = `${counts.guesses} ${counts.guesses === 1 ? "guess" : "guesses"} · ${hintCount} ${hintCount === 1 ? "hint" : "hints"}`;
 
-  if (results.length === 0) {
+  if (empty) {
+    const row = history.insertRow();
+    row.className = "history-placeholder";
+    for (let index = 0; index < 3; index += 1) {
+      row.insertCell().textContent = "\u00a0";
+    }
     return;
   }
 

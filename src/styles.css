@@ -34,6 +34,28 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .game-header h1 { margin-bottom: 0.25rem; }
 .game-header p { color: #62645f; }
 .home-link { font-size: 1.8rem; text-decoration: none; }
+.how-to-play { margin: 0.75rem 0 1.25rem; }
+.how-to-play summary {
+  width: fit-content;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #aaa69b;
+  border-radius: 999px;
+  background: #fffdf8;
+  cursor: pointer;
+  font-weight: 700;
+}
+.how-to-play summary:hover { border-color: #176b50; }
+.how-to-play summary:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
+.how-to-content {
+  margin-top: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #d7d2c8;
+  border-radius: 0.6rem;
+  background: #fffdf8;
+}
+.how-to-content p { margin: 0; }
+.how-to-content ul { margin: 0.7rem 0 0; padding-left: 1.25rem; }
+.how-to-content li + li { margin-top: 0.45rem; }
 
 .puzzle-picker {
   margin: 2rem 0;
@@ -77,6 +99,7 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .status[data-kind="success"] { color: #176b50; font-weight: 700; }
 .status[data-kind="revealed"] { color: #853c20; font-weight: 700; }
 
+#history-section[data-empty="true"] { visibility: hidden; }
 .history-heading { display: flex; align-items: baseline; justify-content: space-between; }
 .history-heading h2 { margin-bottom: 0.5rem; }
 .history-heading span { color: #62645f; font-variant-numeric: tabular-nums; }
@@ -106,6 +129,10 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   button, input, table { background: #242722; border-color: #555a51; }
   .game-header p, .status, .history-heading span { color: #afb5a8; }
   .landing a, .home-link { color: #71d3ad; }
+  .how-to-play summary { background: #242722; border-color: #555a51; }
+  .how-to-play summary:hover { border-color: #71d3ad; }
+  .how-to-play summary:focus-visible { outline-color: #71d3ad; }
+  .how-to-content { background: #242722; border-color: #43483f; }
   .solved-row { background: #164f3a; }
   .hint-button { background: #514319; border-color: #8d7939; color: #ffecac; }
   .puzzle-button[data-state="started"] { background: #514319; border-color: #8d7939; color: #ffecac; }
