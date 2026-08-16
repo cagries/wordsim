@@ -1,23 +1,40 @@
-import type { GameAction, SavedPuzzleProgress, StoredProgress } from "./types";
+import { isValidGuessWord, normalizeGuess } from "./game";
+import type {
+  GameAction,
+  LanguageCode,
+  SavedPuzzleProgress,
+  StoredProgress,
+} from "./types";
 
-export const PROGRESS_STORAGE_KEY = "wordsim.progress.v1";
+export const LEGACY_PROGRESS_STORAGE_KEY = "wordsim.progress.v1";
+export const PROGRESS_STORAGE_PREFIX = "wordsim.progress.v1.";
+export const COLLECTION_STORAGE_KEY = "wordsim.collection.v1";
+const ENGLISH_COLLECTION_ID = "embeddinggemma-768-en-v1";
 
-function isAction(value: unknown): value is GameAction {
+export function progressStorageKey(collectionId: string): string {
+  return `${PROGRESS_STORAGE_PREFIX}${collectionId}`;
+}
+
+function isAction(value: unknown, language: LanguageCode): value is GameAction {
   if (!value || typeof value !== "object") return false;
   const action = value as Partial<GameAction>;
   return (
     (action.source === "guess" || action.source === "hint" || action.source === "answer") &&
     typeof action.word === "string" &&
-    /^[a-z]+$/.test(action.word)
+    normalizeGuess(action.word, language) === action.word &&
+    isValidGuessWord(action.word, language)
   );
 }
 
-function normalizeSavedPuzzle(value: unknown): SavedPuzzleProgress | null {
+function normalizeSavedPuzzle(
+  value: unknown,
+  language: LanguageCode,
+): SavedPuzzleProgress | null {
   if (!value || typeof value !== "object") return null;
   const puzzle = value as Partial<SavedPuzzleProgress>;
   if (
     !Array.isArray(puzzle.actions) ||
-    !puzzle.actions.every(isAction) ||
+    !puzzle.actions.every((action) => isAction(action, language)) ||
     typeof puzzle.categoryRevealed !== "boolean" ||
     typeof puzzle.solved !== "boolean" ||
     (puzzle.gaveUp !== undefined && typeof puzzle.gaveUp !== "boolean")
@@ -43,12 +60,19 @@ export function emptyProgress(vocabularyVersion: string, selectedPuzzleId: strin
 
 export function loadProgress(
   storage: Pick<Storage, "getItem">,
+  collectionId: string,
   vocabularyVersion: string,
   puzzleIds: readonly string[],
+  language: LanguageCode,
 ): StoredProgress {
   const fallback = emptyProgress(vocabularyVersion, puzzleIds[0] ?? "0");
   try {
-    const raw = storage.getItem(PROGRESS_STORAGE_KEY);
+    const key = progressStorageKey(collectionId);
+    const raw = storage.getItem(key) ?? (
+      collectionId === ENGLISH_COLLECTION_ID
+        ? storage.getItem(LEGACY_PROGRESS_STORAGE_KEY)
+        : null
+    );
     if (!raw) return fallback;
     const value = JSON.parse(raw) as Partial<StoredProgress>;
     if (
@@ -63,7 +87,7 @@ export function loadProgress(
     const validIds = new Set(puzzleIds);
     const puzzles: Record<string, SavedPuzzleProgress> = {};
     for (const [id, puzzle] of Object.entries(value.puzzles)) {
-      const normalized = normalizeSavedPuzzle(puzzle);
+      const normalized = normalizeSavedPuzzle(puzzle, language);
       if (validIds.has(id) && normalized) puzzles[id] = normalized;
     }
     return {
@@ -82,11 +106,35 @@ export function loadProgress(
 
 export function saveProgress(
   storage: Pick<Storage, "setItem">,
+  collectionId: string,
   progress: StoredProgress,
 ): void {
   try {
-    storage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+    storage.setItem(progressStorageKey(collectionId), JSON.stringify(progress));
   } catch {
     // The game remains playable when storage is unavailable or full.
+  }
+}
+
+export function loadSelectedCollection(
+  storage: Pick<Storage, "getItem">,
+  validCollectionIds: readonly string[],
+): string | null {
+  try {
+    const selected = storage.getItem(COLLECTION_STORAGE_KEY);
+    return selected && validCollectionIds.includes(selected) ? selected : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSelectedCollection(
+  storage: Pick<Storage, "setItem">,
+  collectionId: string,
+): void {
+  try {
+    storage.setItem(COLLECTION_STORAGE_KEY, collectionId);
+  } catch {
+    // Language switching remains available when storage is unavailable or full.
   }
 }

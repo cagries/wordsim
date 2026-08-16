@@ -2,6 +2,7 @@ import type {
   GameAction,
   GameOutcome,
   GuessResult,
+  LanguageCode,
   PuzzleData,
   TargetCategory,
   VocabularyData,
@@ -12,14 +13,25 @@ export const CATEGORY_GUESS_REQUIREMENT = 5;
 export const CLOSEST_HINT_RANK = 3;
 
 export class GuessError extends Error {
-  constructor(public readonly code: GuessErrorCode, message: string) {
-    super(message);
+  constructor(
+    public readonly code: GuessErrorCode,
+    public readonly word?: string,
+  ) {
+    super(code);
     this.name = "GuessError";
   }
 }
 
-export function normalizeGuess(value: string): string {
-  return value.trim().toLowerCase();
+export function normalizeGuess(value: string, language: LanguageCode = "en"): string {
+  let word = value.trim().normalize("NFC").toLocaleLowerCase(language);
+  if (language === "tr") {
+    word = word.replaceAll("â", "a").replaceAll("î", "i").replaceAll("û", "u");
+  }
+  return word.normalize("NFC");
+}
+
+export function isValidGuessWord(word: string, language: LanguageCode): boolean {
+  return language === "tr" ? /^[a-zçğıöşü]+$/.test(word) : /^[a-z]+$/.test(word);
 }
 
 export function formatScore(score: number): string {
@@ -89,27 +101,24 @@ export class GameSession {
 
   guess(rawValue: string): GuessResult {
     if (this.complete) {
-      const message = this.gaveUp
-        ? "This attempt has ended. Reset it to play again."
-        : "This puzzle is already solved. Reset it to play again.";
-      throw new GuessError("solved", message);
+      throw new GuessError("solved");
     }
 
-    const word = normalizeGuess(rawValue);
+    const word = normalizeGuess(rawValue, this.vocabulary.language);
     if (!word) {
-      throw new GuessError("empty", "Enter a word.");
+      throw new GuessError("empty");
     }
-    if (!/^[a-z]+$/.test(word)) {
-      throw new GuessError("invalid", "Guesses must contain letters only (no spaces).");
+    if (!isValidGuessWord(word, this.vocabulary.language)) {
+      throw new GuessError("invalid", word);
     }
     if (this.guessedWords.has(word)) {
-      throw new GuessError("duplicate", `You already guessed “${word}”.`);
+      throw new GuessError("duplicate", word);
     }
 
     const key = encodeGuessKey(word, this.vocabulary);
     const index = this.indexByKey.get(key);
     if (index === undefined) {
-      throw new GuessError("unknown", `“${word}” is not in this game’s vocabulary.`);
+      throw new GuessError("unknown", word);
     }
 
     const result: GuessResult = {

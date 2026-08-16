@@ -2,18 +2,43 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
+import unicodedata
 from pathlib import Path
 from typing import Iterable
 
 import numpy as np
 
 
-WORD_PATTERN = re.compile(r"^[a-z]+$")
 TARGET_CATEGORIES = {"animal", "object", "action", "adjective", "food", "place"}
+ALLOWED_CHARACTERS = {
+    "en": frozenset("abcdefghijklmnopqrstuvwxyz"),
+    "tr": frozenset("abcdefghijklmnopqrstuvwxyzçğıöşü"),
+}
+TURKISH_CIRCUMFLEXES = str.maketrans({"â": "a", "î": "i", "û": "u"})
 
 
-def load_targets(path: Path, expected_count: int) -> list[dict[str, str]]:
+def normalize_word(value: str, language: str = "en") -> str:
+    if language not in ALLOWED_CHARACTERS:
+        raise ValueError(f"Unsupported language: {language}.")
+    word = unicodedata.normalize("NFC", value.strip())
+    if language == "tr":
+        word = word.replace("I", "ı").replace("İ", "i").lower()
+        word = word.translate(TURKISH_CIRCUMFLEXES)
+    else:
+        word = word.lower()
+    return unicodedata.normalize("NFC", word)
+
+
+def is_valid_word(word: str, language: str = "en") -> bool:
+    allowed = ALLOWED_CHARACTERS.get(language)
+    if allowed is None:
+        raise ValueError(f"Unsupported language: {language}.")
+    return bool(word) and all(character in allowed for character in word)
+
+
+def load_targets(
+    path: Path, expected_count: int, language: str = "en"
+) -> list[dict[str, str]]:
     value = read_json(path)
     if not isinstance(value, list) or len(value) != expected_count:
         actual = len(value) if isinstance(value, list) else "non-list"
@@ -29,8 +54,14 @@ def load_targets(path: Path, expected_count: int) -> list[dict[str, str]]:
         category = entry.get("category")
         if target_id != str(index):
             raise ValueError(f'Target entry {index} must have ID "{index}".')
-        if not isinstance(word, str) or not WORD_PATTERN.fullmatch(word):
-            raise ValueError(f"Target entry {index} must have a lowercase alphabetic word.")
+        if (
+            not isinstance(word, str)
+            or normalize_word(word, language) != word
+            or not is_valid_word(word, language)
+        ):
+            raise ValueError(
+                f"Target entry {index} must have a normalized lowercase alphabetic word."
+            )
         if word in seen_words:
             raise ValueError(f'Duplicate target word: "{word}".')
         if category not in TARGET_CATEGORIES:
@@ -40,12 +71,14 @@ def load_targets(path: Path, expected_count: int) -> list[dict[str, str]]:
     return targets
 
 
-def build_vocabulary(candidates: Iterable[str], size: int) -> list[str]:
+def build_vocabulary(
+    candidates: Iterable[str], size: int, language: str = "en"
+) -> list[str]:
     words: list[str] = []
     seen: set[str] = set()
     for candidate in candidates:
-        word = candidate.strip().lower()
-        if not WORD_PATTERN.fullmatch(word) or word in seen:
+        word = normalize_word(candidate, language)
+        if not is_valid_word(word, language) or word in seen:
             continue
         seen.add(word)
         words.append(word)

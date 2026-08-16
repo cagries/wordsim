@@ -6,6 +6,23 @@ export interface ExtractorMetadata {
   dimensions: 768;
 }
 
+export type LanguageCode = "en" | "tr";
+export type NormalizationStrategy = "en-lower-nfc-v1" | "tr-modern-lower-nfc-v1";
+
+export interface CollectionSummary {
+  id: string;
+  language: LanguageCode;
+  label: string;
+  shortLabel: string;
+  file: string;
+}
+
+export interface CollectionCatalog {
+  schemaVersion: 1;
+  defaultCollectionId: string;
+  collections: CollectionSummary[];
+}
+
 export interface PuzzleSummary {
   id: string;
   label: string;
@@ -13,15 +30,19 @@ export interface PuzzleSummary {
 }
 
 export interface CollectionManifest {
-  schemaVersion: 1;
+  schemaVersion: 2;
+  id: string;
+  language: LanguageCode;
   extractor: ExtractorMetadata;
   vocabularyFile: string;
   puzzles: PuzzleSummary[];
 }
 
 export interface VocabularyData {
-  schemaVersion: 1;
+  schemaVersion: 2;
   version: string;
+  language: LanguageCode;
+  normalization: NormalizationStrategy;
   keyEncoding: "plain";
   keys: string[];
 }

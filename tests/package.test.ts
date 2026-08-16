@@ -3,7 +3,12 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import type { CollectionManifest } from "../src/types";
+import type {
+  CollectionCatalog,
+  CollectionManifest,
+  PuzzleData,
+  VocabularyData,
+} from "../src/types";
 
 const packageRoot = path.join(process.cwd(), "wordsim");
 const indexHtml = readFileSync(path.join(packageRoot, "index.html"), "utf8");
@@ -28,25 +33,54 @@ describe("standalone package", () => {
   });
 
   it("includes a collapsed, native how-to-play disclosure", () => {
-    assert.match(indexHtml, /<details class="how-to-play">\s*<summary>How to play\??<\/summary>/);
+    assert.match(indexHtml, /<details class="how-to-play">\s*<summary id="how-summary">How to play\??<\/summary>/);
     assert.doesNotMatch(indexHtml, /<details class="how-to-play"[^>]*\sopen(?:[\s>])/);
     for (const text of ["Similarity:", "Ranking:", "cold", "category hint"]) {
       assert.match(indexHtml, new RegExp(text, "i"));
     }
   });
 
-  it("contains every runtime file referenced by the collection", () => {
-    for (const file of ["app.js", "app.css", "data/collection.json"]) {
+  it("includes a language control and localizable static copy", () => {
+    assert.match(indexHtml, /<label[^>]*for="language-select"[^>]*>Language<\/label>/);
+    assert.match(indexHtml, /<select id="language-select"[^>]*disabled>/);
+    assert.doesNotMatch(indexHtml, /id="language-button"/);
+    for (const id of ["tagline", "guess-label", "guesses-heading", "how-summary"]) {
+      assert.match(indexHtml, new RegExp(`id="${id}"`));
+    }
+  });
+
+  it("contains every runtime file referenced by every catalog collection", () => {
+    for (const file of ["app.js", "app.css", "data/catalog.json"]) {
       assert.equal(statSync(path.join(packageRoot, file)).isFile(), true);
     }
 
-    const manifest = JSON.parse(
-      readFileSync(path.join(packageRoot, "data/collection.json"), "utf8"),
-    ) as CollectionManifest;
-    assert.equal(statSync(path.join(packageRoot, "data", manifest.vocabularyFile)).isFile(), true);
-    assert.equal(manifest.puzzles.length, 50);
-    for (const puzzle of manifest.puzzles) {
-      assert.equal(statSync(path.join(packageRoot, "data", puzzle.file)).isFile(), true);
+    const catalog = JSON.parse(
+      readFileSync(path.join(packageRoot, "data/catalog.json"), "utf8"),
+    ) as CollectionCatalog;
+    assert.equal(catalog.collections.length, 2);
+    assert.equal(catalog.defaultCollectionId, "embeddinggemma-768-en-v1");
+
+    for (const collection of catalog.collections) {
+      const manifestPath = path.join(packageRoot, "data", collection.file);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as CollectionManifest;
+      const collectionRoot = path.dirname(manifestPath);
+      const vocabularyPath = path.join(collectionRoot, manifest.vocabularyFile);
+      const vocabulary = JSON.parse(readFileSync(vocabularyPath, "utf8")) as VocabularyData;
+      assert.equal(manifest.id, collection.id);
+      assert.equal(manifest.language, collection.language);
+      assert.equal(vocabulary.language, collection.language);
+      assert.equal(vocabulary.keys.length, 30_000);
+      assert.equal(manifest.puzzles.length, 50);
+      for (const puzzle of manifest.puzzles) {
+        const puzzlePath = path.join(collectionRoot, puzzle.file);
+        assert.equal(statSync(puzzlePath).isFile(), true);
+        const data = JSON.parse(readFileSync(puzzlePath, "utf8")) as PuzzleData;
+        assert.equal(data.vocabularyVersion, vocabulary.version);
+        assert.equal(data.scores.length, vocabulary.keys.length);
+        assert.equal(data.topIndices.length, 1_000);
+        assert.equal(vocabulary.keys[data.topIndices[0]], data.targetKey);
+        assert.equal(data.scores[data.topIndices[0]], 10_000);
+      }
     }
   });
 });

@@ -8,13 +8,16 @@ import {
   formatScore,
   GameSession,
   GuessError,
+  isValidGuessWord,
   normalizeGuess,
 } from "../src/game";
 import type { PuzzleData, VocabularyData } from "../src/types";
 
 const vocabulary: VocabularyData = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: "test-version",
+  language: "en",
+  normalization: "en-lower-nfc-v1",
   keyEncoding: "plain",
   keys: ["cold", "target", "warm"],
 };
@@ -31,6 +34,45 @@ const puzzle: PuzzleData = {
 describe("normalizeGuess", () => {
   it("trims and lowercases input", () => {
     assert.equal(normalizeGuess("  WaRm "), "warm");
+  });
+
+  it("uses Turkish casing and collapses common circumflexes", () => {
+    assert.equal(normalizeGuess("  İSTANBUL ", "tr"), "istanbul");
+    assert.equal(normalizeGuess("IŞIK", "tr"), "ışık");
+    assert.equal(normalizeGuess("KÂR ÎMAN SÛR", "tr"), "kar iman sur");
+  });
+
+  it("accepts the modern Turkish alphabet plus q, w, and x", () => {
+    for (const word of ["çığ", "öykü", "web", "quiz", "xenon"]) {
+      assert.equal(isValidGuessWord(word, "tr"), true);
+    }
+    assert.equal(isValidGuessWord("iki kelime", "tr"), false);
+    assert.equal(isValidGuessWord("söz!", "tr"), false);
+  });
+});
+
+describe("Turkish GameSession", () => {
+  const turkishVocabulary: VocabularyData = {
+    schemaVersion: 2,
+    version: "tr-version",
+    language: "tr",
+    normalization: "tr-modern-lower-nfc-v1",
+    keyEncoding: "plain",
+    keys: ["ışık", "kar"],
+  };
+  const turkishPuzzle: PuzzleData = {
+    schemaVersion: 2,
+    vocabularyVersion: "tr-version",
+    targetKey: "ışık",
+    category: "object",
+    scores: [10_000, 4000],
+    topIndices: [0, 1],
+  };
+
+  it("looks up locale-normalized and circumflex-collapsed guesses", () => {
+    const session = new GameSession(turkishVocabulary, turkishPuzzle);
+    assert.equal(session.guess("KÂR").word, "kar");
+    assert.equal(session.guess("IŞIK").solved, true);
   });
 });
 
@@ -97,7 +139,10 @@ describe("GameSession", () => {
   it("rejects duplicate guesses", () => {
     const session = new GameSession(vocabulary, puzzle);
     session.guess("warm");
-    assert.throws(() => session.guess("WARM"), /already guessed/);
+    assert.throws(
+      () => session.guess("WARM"),
+      (error: unknown) => error instanceof GuessError && error.code === "duplicate",
+    );
   });
 
   it("rejects vocabulary and puzzle version mismatches", () => {
@@ -110,8 +155,10 @@ describe("GameSession", () => {
 
 describe("GameSession hints", () => {
   const hintVocabulary: VocabularyData = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     version: "hint-version",
+    language: "en",
+    normalization: "en-lower-nfc-v1",
     keyEncoding: "plain",
     keys: Array.from({ length: 26 }, (_, index) => `word${String.fromCharCode(97 + index)}`),
   };
@@ -171,7 +218,10 @@ describe("GameSession hints", () => {
     const session = new GameSession(hintVocabulary, hintPuzzle);
     const hint = session.revealHint();
     assert.ok(hint);
-    assert.throws(() => session.guess(hint.word), /already guessed/);
+    assert.throws(
+      () => session.guess(hint.word),
+      (error: unknown) => error instanceof GuessError && error.code === "duplicate",
+    );
   });
 
   it("counts guesses and hints separately", () => {
@@ -239,7 +289,10 @@ describe("giving up", () => {
     assert.equal(session.solved, false);
     assert.equal(session.complete, true);
     assert.deepEqual(session.getResultCounts(), { guesses: 1, hints: 0 });
-    assert.throws(() => session.guess("warm"), /attempt has ended/);
+    assert.throws(
+      () => session.guess("warm"),
+      (error: unknown) => error instanceof GuessError && error.code === "solved",
+    );
     assert.equal(session.revealHint(), null);
   });
 
@@ -269,8 +322,10 @@ describe("giving up", () => {
 describe("category hint access", () => {
   const words = Array.from({ length: 25 }, (_, index) => `guess${String.fromCharCode(97 + index)}`);
   const categoryVocabulary: VocabularyData = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     version: "category-version",
+    language: "en",
+    normalization: "en-lower-nfc-v1",
     keyEncoding: "plain",
     keys: ["target", ...words, "hint"],
   };

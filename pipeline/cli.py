@@ -8,15 +8,20 @@ from pathlib import Path
 import numpy as np
 
 from pipeline.config import (
+    CACHE_ROOT,
+    COLLECTIONS,
+    DATA_ROOT,
+    DEFAULT_COLLECTION_ID,
     MODEL_DIMENSIONS,
     MODEL_ID,
     MODEL_PROMPT,
     MODEL_REVISION,
     TARGET_COUNT,
-    TARGETS_FILE,
     TOP_RANK_COUNT,
     VOCABULARY_SIZE,
+    CollectionConfig,
     Paths,
+    catalog_value,
 )
 from pipeline.core import (
     build_vocabulary,
@@ -29,31 +34,39 @@ from pipeline.core import (
 from pipeline.extractors import EmbeddingGemmaExtractor
 
 
-def load_common_words() -> list[str]:
+def load_common_words(language: str) -> list[str]:
     from wordfreq import iter_wordlist
 
-    return build_vocabulary(iter_wordlist("en", wordlist="best"), VOCABULARY_SIZE)
+    return build_vocabulary(
+        iter_wordlist(language, wordlist="best"), VOCABULARY_SIZE, language
+    )
 
 
-def load_or_create_vocabulary(paths: Paths) -> list[str]:
+def load_or_create_vocabulary(paths: Paths, collection: CollectionConfig) -> list[str]:
     if paths.vocabulary.exists():
         value = read_json(paths.vocabulary)
         if isinstance(value, dict):
             keys = value.get("keys")
             version = value.get("version")
             if (
-                isinstance(keys, list)
+                value.get("schemaVersion") == 2
+                and value.get("language") == collection.language
+                and value.get("normalization") == collection.normalization
+                and value.get("keyEncoding") == "plain"
+                and isinstance(keys, list)
                 and len(keys) == VOCABULARY_SIZE
                 and all(isinstance(word, str) for word in keys)
                 and version == vocabulary_version(keys)
             ):
                 print(f"Using existing vocabulary from {paths.vocabulary}")
                 return keys
-    return load_common_words()
+    return load_common_words(collection.language)
 
 
 def expected_cache_metadata(
-    version: str, sentence_transformers_version: str | None = None
+    version: str,
+    collection: CollectionConfig,
+    sentence_transformers_version: str | None = None,
 ) -> dict[str, object]:
     if sentence_transformers_version is None:
         sentence_transformers_version = importlib.metadata.version("sentence-transformers")
@@ -62,6 +75,9 @@ def expected_cache_metadata(
         "revision": MODEL_REVISION,
         "prompt": MODEL_PROMPT,
         "dimensions": MODEL_DIMENSIONS,
+        "collectionId": collection.id,
+        "language": collection.language,
+        "normalization": collection.normalization,
         "vocabularyVersion": version,
         "sentenceTransformersVersion": sentence_transformers_version,
     }
@@ -69,6 +85,7 @@ def expected_cache_metadata(
 
 def load_or_create_embeddings(
     paths: Paths,
+    collection: CollectionConfig,
     words: list[str],
     version: str,
     *,
@@ -82,14 +99,14 @@ def load_or_create_embeddings(
         else None
     )
     try:
-        expected = expected_cache_metadata(version)
+        expected = expected_cache_metadata(version, collection)
     except importlib.metadata.PackageNotFoundError:
         cached_version = (
             actual.get("sentenceTransformersVersion") if isinstance(actual, dict) else None
         )
         if not isinstance(cached_version, str):
             raise
-        expected = expected_cache_metadata(version, cached_version)
+        expected = expected_cache_metadata(version, collection, cached_version)
     if not force and paths.embeddings.exists() and paths.cache_metadata.exists():
         if actual == expected:
             embeddings = np.load(paths.embeddings)
@@ -112,9 +129,15 @@ def load_or_create_embeddings(
 
 
 def generate(args: argparse.Namespace) -> None:
-    paths = Paths(output=args.output, cache=args.cache)
-    targets = load_targets(args.targets, TARGET_COUNT)
-    words = load_or_create_vocabulary(paths)
+    collection = COLLECTIONS[args.collection]
+    default_output = args.output is None
+    paths = Paths(
+        output=args.output or collection.output,
+        cache=args.cache / collection.id,
+    )
+    targets_path = args.targets or collection.targets
+    targets = load_targets(targets_path, TARGET_COUNT, collection.language)
+    words = load_or_create_vocabulary(paths, collection)
     missing = [target["word"] for target in targets if target["word"] not in words]
     if missing:
         raise ValueError(f"Targets missing from vocabulary: {', '.join(missing)}")
@@ -122,6 +145,7 @@ def generate(args: argparse.Namespace) -> None:
     version = vocabulary_version(words)
     embeddings = load_or_create_embeddings(
         paths,
+        collection,
         words,
         version,
         batch_size=args.batch_size,
@@ -131,7 +155,14 @@ def generate(args: argparse.Namespace) -> None:
 
     write_json(
         paths.vocabulary,
-        {"schemaVersion": 1, "version": version, "keyEncoding": "plain", "keys": words},
+        {
+            "schemaVersion": 2,
+            "version": version,
+            "language": collection.language,
+            "normalization": collection.normalization,
+            "keyEncoding": "plain",
+            "keys": words,
+        },
     )
 
     puzzles: list[dict[str, str]] = []
@@ -165,7 +196,9 @@ def generate(args: argparse.Namespace) -> None:
     write_json(
         paths.manifest,
         {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
+            "id": collection.id,
+            "language": collection.language,
             "extractor": {
                 "id": "embeddinggemma",
                 "model": MODEL_ID,
@@ -177,12 +210,20 @@ def generate(args: argparse.Namespace) -> None:
             "puzzles": puzzles,
         },
     )
+    if default_output:
+        write_json(DATA_ROOT / "catalog.json", catalog_value())
     print(f"Generated {len(puzzles)} puzzles in {paths.output}")
 
 
 def audit(args: argparse.Namespace) -> None:
-    paths = Paths(output=args.output, cache=args.cache)
-    targets = load_targets(args.targets, TARGET_COUNT)
+    collection = COLLECTIONS[args.collection]
+    paths = Paths(
+        output=args.output or collection.output,
+        cache=args.cache / collection.id,
+    )
+    targets = load_targets(
+        args.targets or collection.targets, TARGET_COUNT, collection.language
+    )
     vocabulary = read_json(paths.vocabulary)
     if not isinstance(vocabulary, dict) or not isinstance(vocabulary.get("keys"), list):
         raise ValueError("Generate the vocabulary before running an audit.")
@@ -208,10 +249,16 @@ def parser() -> argparse.ArgumentParser:
         "command", choices=("generate", "audit"), help="Pipeline operation to run."
     )
     command_parser.add_argument(
-        "--output", type=Path, default=Path("wordsim/data")
+        "--collection",
+        choices=tuple(COLLECTIONS),
+        default=DEFAULT_COLLECTION_ID,
+        help="Collection configuration to generate or audit.",
     )
-    command_parser.add_argument("--cache", type=Path, default=Path("pipeline-cache"))
-    command_parser.add_argument("--targets", type=Path, default=TARGETS_FILE)
+    command_parser.add_argument(
+        "--output", type=Path, default=None
+    )
+    command_parser.add_argument("--cache", type=Path, default=CACHE_ROOT)
+    command_parser.add_argument("--targets", type=Path, default=None)
     command_parser.add_argument("--batch-size", type=int, default=64)
     command_parser.add_argument("--device", default=None)
     command_parser.add_argument("--force", action="store_true")

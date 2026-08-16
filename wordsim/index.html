@@ -3,31 +3,37 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Guess a hidden word by following semantic similarity.">
+    <meta id="meta-description" name="description" content="Guess a hidden word by following semantic similarity.">
     <title>wordsim</title>
     <link rel="stylesheet" href="./app.css">
   </head>
   <body>
 <main id="wordsim" class="game-shell" data-data-root="./data">
   <header class="game-header">
-    <h1><a class="home-link" href="../">wordsim</a></h1>
-    <p>Guess the hidden word.</p>
+    <div class="game-title-row">
+      <h1><a class="home-link" href="../">wordsim</a></h1>
+      <label id="language-label" class="visually-hidden" for="language-select">Language</label>
+      <select id="language-select" class="language-select" disabled>
+        <option value="embeddinggemma-768-en-v1">English</option>
+      </select>
+    </div>
+    <p id="tagline">Guess the hidden word.</p>
     <details class="how-to-play">
-      <summary>How to play?</summary>
+      <summary id="how-summary">How to play?</summary>
       <div class="how-to-content">
-        <p>Find the hidden word by guessing one common English word at a time.</p>
+        <p id="how-intro">Find the hidden word by guessing one common English word at a time.</p>
         <ul>
-          <li><strong>First guess:</strong> You start with no prior information, guess anything! </li>
-          <li><strong>Similarity:</strong> Higher scores mean the words are closer in meaning, with 100 being the maximum.</li>
-          <li><strong>Ranking:</strong> Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words.</li>
-          <li><strong>Hints:</strong> Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.</li>
+          <li><strong id="how-first-label">First guess:</strong> <span id="how-first-text">You start with no prior information, guess anything!</span></li>
+          <li><strong id="how-similarity-label">Similarity:</strong> <span id="how-similarity-text">Higher scores mean the words are closer in meaning, with 100 being the maximum.</span></li>
+          <li><strong id="how-ranking-label">Ranking:</strong> <span id="how-ranking-text">Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words.</span></li>
+          <li><strong id="how-hints-label">Hints:</strong> <span id="how-hints-text">Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.</span></li>
         </ul>
       </div>
     </details>
   </header>
 
   <form id="guess-form" class="guess-form" novalidate>
-    <label for="guess-input">Your guess</label>
+    <label id="guess-label" for="guess-input">Your guess</label>
     <div class="guess-row">
       <input
         id="guess-input"
@@ -37,14 +43,13 @@
         autocomplete="off"
         autocapitalize="none"
         spellcheck="false"
-        pattern="[A-Za-z]+"
         maxlength="64"
         required
         disabled
       >
       <button id="guess-button" type="submit" disabled>Guess</button>
     </div>
-    <div class="assistance-row" aria-label="Hints and answer controls">
+    <div id="assistance-controls" class="assistance-row" aria-label="Hints and answer controls">
       <button id="word-hint-button" class="hint-button" type="button" disabled>Word hint</button>
       <button id="category-hint-button" class="hint-button category-hint-button" type="button" disabled>Category hint</button>
       <button id="give-up-button" class="give-up-button" type="button" disabled>Give up</button>
@@ -69,9 +74,9 @@
       <table>
         <thead>
           <tr>
-            <th scope="col">Word</th>
-            <th scope="col">Similarity</th>
-            <th scope="col">Ranking</th>
+            <th id="word-heading" scope="col">Word</th>
+            <th id="similarity-heading" scope="col">Similarity</th>
+            <th id="ranking-heading" scope="col">Ranking</th>
           </tr>
         </thead>
         <tbody id="guess-history">
@@ -91,7 +96,7 @@
       <button id="reset-button" type="button" disabled>Reset selected puzzle</button>
     </div>
     <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
-    <p class="puzzle-legend"><span>● Started</span><span>✓ Solved</span><span>× Answer revealed</span></p>
+    <p class="puzzle-legend"><span id="started-legend">● Started</span><span id="solved-legend">✓ Solved</span><span id="revealed-legend">× Answer revealed</span></p>
   </section>
 </main>
     <script type="module" src="./app.js"></script>

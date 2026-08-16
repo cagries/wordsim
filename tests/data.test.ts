@@ -1,31 +1,54 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
 
-import { loadCollection, loadPuzzle } from "../src/data";
+import { loadCatalog, loadCollection, loadPuzzle } from "../src/data";
+import type { CollectionSummary } from "../src/types";
 
 afterEach(() => {
   mock.restoreAll();
 });
 
+const summary: CollectionSummary = {
+  id: "embeddinggemma-768-tr-v1",
+  language: "tr",
+  label: "Türkçe",
+  shortLabel: "TR",
+  file: "collections/embeddinggemma-768-tr-v1/collection.json",
+};
+
 describe("data loading", () => {
-  it("loads a collection and resolves its vocabulary relative to the data root", async () => {
+  it("loads and validates the collection catalog", async () => {
+    const catalog = {
+      schemaVersion: 1,
+      defaultCollectionId: summary.id,
+      collections: [summary],
+    };
+    mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => catalog }) as Response);
+    assert.deepEqual(await loadCatalog("/base/data/"), catalog);
+  });
+
+  it("loads a collection and resolves files relative to its directory", async () => {
     const responses = [
       {
         ok: true,
         json: async () => ({
-          schemaVersion: 1,
+          schemaVersion: 2,
+          id: summary.id,
+          language: "tr",
           extractor: {},
           vocabularyFile: "vocabulary.json",
-          puzzles: [{ id: "one", label: "Puzzle 1", file: "puzzles/one.json" }],
+          puzzles: [{ id: "one", label: "Bulmaca 1", file: "puzzles/one.json" }],
         }),
       },
       {
         ok: true,
         json: async () => ({
-          schemaVersion: 1,
+          schemaVersion: 2,
           version: "abc",
+          language: "tr",
+          normalization: "tr-modern-lower-nfc-v1",
           keyEncoding: "plain",
-          keys: ["word"],
+          keys: ["sözcük"],
         }),
       },
     ];
@@ -35,9 +58,21 @@ describe("data loading", () => {
       return responses.shift() as Response;
     });
 
-    const result = await loadCollection("/base/data/");
-    assert.deepEqual(result.vocabulary.keys, ["word"]);
-    assert.deepEqual(requested, ["/base/data/collection.json", "/base/data/vocabulary.json"]);
+    const result = await loadCollection("/base/data/", summary);
+    assert.deepEqual(result.vocabulary.keys, ["sözcük"]);
+    assert.equal(result.collectionRoot, "/base/data/collections/embeddinggemma-768-tr-v1");
+    assert.deepEqual(requested, [
+      "/base/data/collections/embeddinggemma-768-tr-v1/collection.json",
+      "/base/data/collections/embeddinggemma-768-tr-v1/vocabulary.json",
+    ]);
+  });
+
+  it("rejects a manifest that disagrees with its catalog entry", async () => {
+    mock.method(globalThis, "fetch", async () => ({
+      ok: true,
+      json: async () => ({ schemaVersion: 2, id: "other", language: "tr", puzzles: [{}] }),
+    }) as Response);
+    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
   });
 
   it("reports unsuccessful puzzle requests", async () => {
@@ -58,16 +93,15 @@ describe("data loading", () => {
     assert.deepEqual(await loadPuzzle("/data", "puzzles/0.json"), puzzle);
   });
 
-  it("rejects unsupported puzzle schemas", async () => {
+  it("rejects unsupported puzzle schemas and categories", async () => {
     mock.method(
       globalThis,
       "fetch",
       async () => ({ ok: true, json: async () => ({ schemaVersion: 3 }) }) as Response,
     );
     await assert.rejects(loadPuzzle("/data", "future.json"), /not supported/);
-  });
 
-  it("rejects puzzle data without a supported category", async () => {
+    mock.restoreAll();
     mock.method(
       globalThis,
       "fetch",

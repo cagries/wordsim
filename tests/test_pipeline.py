@@ -6,10 +6,18 @@ from pathlib import Path
 import numpy as np
 
 from pipeline.cli import parser
-from pipeline.config import TARGET_COUNT, TARGETS_FILE
+from pipeline.config import (
+    COLLECTIONS,
+    DEFAULT_COLLECTION_ID,
+    ENGLISH_COLLECTION_ID,
+    TARGET_COUNT,
+    TURKISH_COLLECTION_ID,
+)
 from pipeline.core import (
     build_vocabulary,
+    is_valid_word,
     load_targets,
+    normalize_word,
     normalize_rows,
     score_target,
     vocabulary_version,
@@ -20,15 +28,27 @@ from pipeline.core import (
 class PipelineCoreTests(unittest.TestCase):
     def test_cli_defaults_to_standalone_package_data(self) -> None:
         args = parser().parse_args(["audit"])
-        self.assertEqual(args.output, Path("wordsim/data"))
+        self.assertIsNone(args.output)
+        self.assertEqual(args.collection, DEFAULT_COLLECTION_ID)
+        self.assertEqual(
+            COLLECTIONS[args.collection].output,
+            Path("wordsim/data/collections/embeddinggemma-768-en-v1"),
+        )
 
-    def test_configured_targets_have_pinned_introduction(self) -> None:
-        targets = load_targets(TARGETS_FILE, TARGET_COUNT)
-        self.assertEqual((targets[0]["id"], targets[0]["word"]), ("0", "violin"))
-        self.assertEqual((targets[1]["id"], targets[1]["word"]), ("1", "airport"))
-        self.assertEqual({target["category"] for target in targets}, {
-            "animal", "object", "action", "adjective", "food", "place"
-        })
+    def test_configured_targets_are_complete_and_pinned(self) -> None:
+        expected_openings = {
+            ENGLISH_COLLECTION_ID: ("violin", "airport"),
+            TURKISH_COLLECTION_ID: ("sessiz", "sincap"),
+        }
+        for collection_id, opening in expected_openings.items():
+            collection = COLLECTIONS[collection_id]
+            targets = load_targets(
+                collection.targets, TARGET_COUNT, collection.language
+            )
+            self.assertEqual(tuple(target["word"] for target in targets[:2]), opening)
+            self.assertEqual({target["category"] for target in targets}, {
+                "animal", "object", "action", "adjective", "food", "place"
+            })
 
     def test_load_targets_validates_and_preserves_order(self) -> None:
         targets = [
@@ -68,6 +88,19 @@ class PipelineCoreTests(unittest.TestCase):
     def test_build_vocabulary_filters_and_deduplicates(self) -> None:
         candidates = [" Cat ", "two words", "DOG", "dog", "can't", "owl"]
         self.assertEqual(build_vocabulary(candidates, 3), ["cat", "dog", "owl"])
+
+    def test_turkish_normalization_handles_casing_and_circumflexes(self) -> None:
+        self.assertEqual(normalize_word("  İSTANBUL ", "tr"), "istanbul")
+        self.assertEqual(normalize_word("IŞIK", "tr"), "ışık")
+        self.assertEqual(normalize_word("KÂR", "tr"), "kar")
+        self.assertTrue(is_valid_word("çığöşüqwx", "tr"))
+        self.assertFalse(is_valid_word("iki kelime", "tr"))
+
+    def test_turkish_vocabulary_deduplicates_after_normalization(self) -> None:
+        candidates = [" KÂR ", "kar", "IŞIK", "ışık", "iki kelime", "ÖYKÜ"]
+        self.assertEqual(
+            build_vocabulary(candidates, 3, "tr"), ["kar", "ışık", "öykü"]
+        )
 
     def test_build_vocabulary_requires_requested_size(self) -> None:
         with self.assertRaisesRegex(ValueError, "expected 2"):
