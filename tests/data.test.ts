@@ -47,6 +47,7 @@ describe("data loading", () => {
           version: "abc",
           language: "tr",
           normalization: "tr-modern-lower-nfc-v1",
+          vocabularyPolicy: "stanza-tr-guarded-v1",
           keyEncoding: "plain",
           keys: ["sözcük"],
         }),

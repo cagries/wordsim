@@ -69,7 +69,11 @@ describe("standalone package", () => {
       assert.equal(manifest.id, collection.id);
       assert.equal(manifest.language, collection.language);
       assert.equal(vocabulary.language, collection.language);
-      assert.equal(vocabulary.keys.length, 30_000);
+      const expectedPolicy = collection.language === "tr"
+        ? "stanza-tr-guarded-v1"
+        : "wordfreq-surface-v1";
+      assert.equal(vocabulary.vocabularyPolicy, expectedPolicy);
+      assert.equal(vocabulary.keys.length, collection.language === "tr" ? 18_315 : 30_000);
       assert.equal(manifest.puzzles.length, 50);
       for (const puzzle of manifest.puzzles) {
         const puzzlePath = path.join(collectionRoot, puzzle.file);

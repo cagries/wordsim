@@ -34,15 +34,40 @@ from pipeline.core import (
 from pipeline.extractors import EmbeddingGemmaExtractor
 
 
-def load_common_words(language: str) -> list[str]:
+def load_common_words(
+    collection: CollectionConfig, cache_root: Path, stanza_batch_size: int
+) -> list[str]:
     from wordfreq import iter_wordlist
 
+    if collection.language == "tr":
+        from pipeline.turkish import build_stanza_vocabulary
+
+        result = build_stanza_vocabulary(
+            iter_wordlist("tr", wordlist="best"),
+            VOCABULARY_SIZE,
+            cache_root / "stanza",
+            analysis_batch_size=stanza_batch_size,
+        )
+        print(
+            f"Turkish preprocessing: {result.candidate_count} candidates -> "
+            f"{len(result.words)} words; {result.changed_verbs} verbs converted."
+        )
+        print(f"POS counts: {dict(result.tags.most_common())}")
+        print(f"Drops: {dict(result.drops.most_common())}")
+        return result.words
     return build_vocabulary(
-        iter_wordlist(language, wordlist="best"), VOCABULARY_SIZE, language
+        iter_wordlist(collection.language, wordlist="best"),
+        VOCABULARY_SIZE,
+        collection.language,
     )
 
 
-def load_or_create_vocabulary(paths: Paths, collection: CollectionConfig) -> list[str]:
+def load_or_create_vocabulary(
+    paths: Paths,
+    collection: CollectionConfig,
+    cache_root: Path,
+    stanza_batch_size: int,
+) -> list[str]:
     if paths.vocabulary.exists():
         value = read_json(paths.vocabulary)
         if isinstance(value, dict):
@@ -52,15 +77,17 @@ def load_or_create_vocabulary(paths: Paths, collection: CollectionConfig) -> lis
                 value.get("schemaVersion") == 2
                 and value.get("language") == collection.language
                 and value.get("normalization") == collection.normalization
+                and value.get("vocabularyPolicy") == collection.vocabulary_policy
                 and value.get("keyEncoding") == "plain"
                 and isinstance(keys, list)
-                and len(keys) == VOCABULARY_SIZE
+                and TOP_RANK_COUNT <= len(keys) <= VOCABULARY_SIZE
+                and (collection.language != "en" or len(keys) == VOCABULARY_SIZE)
                 and all(isinstance(word, str) for word in keys)
                 and version == vocabulary_version(keys)
             ):
                 print(f"Using existing vocabulary from {paths.vocabulary}")
                 return keys
-    return load_common_words(collection.language)
+    return load_common_words(collection, cache_root, stanza_batch_size)
 
 
 def expected_cache_metadata(
@@ -137,7 +164,9 @@ def generate(args: argparse.Namespace) -> None:
     )
     targets_path = args.targets or collection.targets
     targets = load_targets(targets_path, TARGET_COUNT, collection.language)
-    words = load_or_create_vocabulary(paths, collection)
+    words = load_or_create_vocabulary(
+        paths, collection, args.cache, args.stanza_batch_size
+    )
     missing = [target["word"] for target in targets if target["word"] not in words]
     if missing:
         raise ValueError(f"Targets missing from vocabulary: {', '.join(missing)}")
@@ -160,6 +189,7 @@ def generate(args: argparse.Namespace) -> None:
             "version": version,
             "language": collection.language,
             "normalization": collection.normalization,
+            "vocabularyPolicy": collection.vocabulary_policy,
             "keyEncoding": "plain",
             "keys": words,
         },
@@ -260,6 +290,7 @@ def parser() -> argparse.ArgumentParser:
     command_parser.add_argument("--cache", type=Path, default=CACHE_ROOT)
     command_parser.add_argument("--targets", type=Path, default=None)
     command_parser.add_argument("--batch-size", type=int, default=64)
+    command_parser.add_argument("--stanza-batch-size", type=int, default=2_000)
     command_parser.add_argument("--device", default=None)
     command_parser.add_argument("--force", action="store_true")
     command_parser.add_argument("--limit", type=int, default=25)

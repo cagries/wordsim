@@ -23,6 +23,7 @@ from pipeline.core import (
     vocabulary_version,
     write_json,
 )
+from pipeline.turkish import canonicalize_analysis, parse_features, turkish_infinitive
 
 
 class PipelineCoreTests(unittest.TestCase):
@@ -100,6 +101,42 @@ class PipelineCoreTests(unittest.TestCase):
         candidates = [" KÂR ", "kar", "IŞIK", "ışık", "iki kelime", "ÖYKÜ"]
         self.assertEqual(
             build_vocabulary(candidates, 3, "tr"), ["kar", "ışık", "öykü"]
+        )
+
+    def test_turkish_infinitive_uses_two_way_vowel_harmony(self) -> None:
+        self.assertEqual(turkish_infinitive("gel"), "gelmek")
+        self.assertEqual(turkish_infinitive("bak"), "bakmak")
+        self.assertEqual(turkish_infinitive("gör"), "görmek")
+        self.assertIsNone(turkish_infinitive("hmm"))
+
+    def test_turkish_policy_converts_only_verbs_to_lemmas(self) -> None:
+        self.assertEqual(
+            canonicalize_analysis("geliyor", "gel", "VERB", "Mood=Ind"),
+            ("gelmek", "kept"),
+        )
+        self.assertEqual(
+            canonicalize_analysis("kaplumbağa", "kaplumbak", "NOUN", "Case=Nom|Number=Sing"),
+            ("kaplumbağa", "kept"),
+        )
+
+    def test_turkish_policy_drops_inflections_and_proper_nouns(self) -> None:
+        self.assertEqual(
+            canonicalize_analysis("evler", "ev", "NOUN", "Case=Nom|Number=Plur"),
+            (None, "inflected-noun"),
+        )
+        self.assertEqual(
+            canonicalize_analysis("evim", "ev", "NOUN", "Number[psor]=Sing"),
+            (None, "inflected-noun"),
+        )
+        self.assertEqual(
+            canonicalize_analysis("ankara", "Ankara", "PROPN", "Case=Nom"),
+            (None, "propn"),
+        )
+
+    def test_parse_turkish_features_ignores_malformed_items(self) -> None:
+        self.assertEqual(
+            parse_features("Case=Nom|broken|Number=Sing"),
+            {"Case": "Nom", "Number": "Sing"},
         )
 
     def test_build_vocabulary_requires_requested_size(self) -> None:

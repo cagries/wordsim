@@ -5,6 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
   "numpy>=2.0,<3",
   "sentence-transformers==5.7.0",
+  "stanza==1.14.0",
   "wordfreq>=3.1,<4",
 ]
 

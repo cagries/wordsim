@@ -78,6 +78,9 @@ export async function loadCollection(
     vocabulary.normalization !== (
       vocabulary.language === "tr" ? "tr-modern-lower-nfc-v1" : "en-lower-nfc-v1"
     ) ||
+    vocabulary.vocabularyPolicy !== (
+      vocabulary.language === "tr" ? "stanza-tr-guarded-v1" : "wordfreq-surface-v1"
+    ) ||
     vocabulary.version.length === 0
   ) {
     throw new Error("The vocabulary format is not supported.");

@@ -20,6 +20,7 @@ class CollectionConfig:
     label: str
     short_label: str
     normalization: str
+    vocabulary_policy: str
     targets: Path
 
     @property
@@ -36,6 +37,7 @@ COLLECTIONS = {
         label="English",
         short_label="EN",
         normalization="en-lower-nfc-v1",
+        vocabulary_policy="wordfreq-surface-v1",
         targets=Path(__file__).with_name("targets") / "en.json",
     ),
     TURKISH_COLLECTION_ID: CollectionConfig(
@@ -44,6 +46,7 @@ COLLECTIONS = {
         label="Türkçe",
         short_label="TR",
         normalization="tr-modern-lower-nfc-v1",
+        vocabulary_policy="stanza-tr-guarded-v1",
         targets=Path(__file__).with_name("targets") / "tr.json",
     ),
 }

@@ -18,6 +18,7 @@ const vocabulary: VocabularyData = {
   version: "test-version",
   language: "en",
   normalization: "en-lower-nfc-v1",
+  vocabularyPolicy: "wordfreq-surface-v1",
   keyEncoding: "plain",
   keys: ["cold", "target", "warm"],
 };
@@ -57,6 +58,7 @@ describe("Turkish GameSession", () => {
     version: "tr-version",
     language: "tr",
     normalization: "tr-modern-lower-nfc-v1",
+    vocabularyPolicy: "stanza-tr-guarded-v1",
     keyEncoding: "plain",
     keys: ["ışık", "kar"],
   };
@@ -159,6 +161,7 @@ describe("GameSession hints", () => {
     version: "hint-version",
     language: "en",
     normalization: "en-lower-nfc-v1",
+    vocabularyPolicy: "wordfreq-surface-v1",
     keyEncoding: "plain",
     keys: Array.from({ length: 26 }, (_, index) => `word${String.fromCharCode(97 + index)}`),
   };
@@ -326,6 +329,7 @@ describe("category hint access", () => {
     version: "category-version",
     language: "en",
     normalization: "en-lower-nfc-v1",
+    vocabularyPolicy: "wordfreq-surface-v1",
     keyEncoding: "plain",
     keys: ["target", ...words, "hint"],
   };

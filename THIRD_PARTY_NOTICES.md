@@ -16,3 +16,8 @@ The `wordfreq` code is Apache-2.0 licensed. Its data includes material available
 
 The generated vocabulary data should be redistributed with this notice intact.
 
+## Stanza
+
+The Turkish vocabulary is morphologically analyzed with [Stanza](https://stanfordnlp.github.io/stanza/), developed by the Stanford NLP Group, and its Turkish IMST models. Stanza is distributed under the Apache License 2.0. Model and training-data licenses are documented in the [Stanza model documentation](https://stanfordnlp.github.io/stanza/available_models.html).
+
+The repository does not redistribute Stanza model files. The generated Turkish vocabulary is an output of the preprocessing pipeline.

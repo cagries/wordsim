@@ -19,6 +19,8 @@ export interface Translations {
   howRankingText: string;
   howHintsLabel: string;
   howHintsText: string;
+  howFormsLabel: string;
+  howFormsText: string;
   yourGuess: string;
   guess: string;
   wordHint: string;
@@ -81,6 +83,8 @@ const english: Translations = {
   howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words.",
   howHintsLabel: "Hints:",
   howHintsText: "Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.",
+  howFormsLabel: "",
+  howFormsText: "",
   yourGuess: "Your guess",
   guess: "Guess",
   wordHint: "Word hint",
@@ -158,6 +162,8 @@ const turkish: Translations = {
   howRankingText: "Daha düşük sıra daha iyidir. #1 gizli kelimedir; “uzak” tahmin en yakın 1000 kelimenin dışında demektir.",
   howHintsLabel: "İpuçları:",
   howHintsText: "Kelime ipuçları giderek yakınlaşan kelimeler gösterir. Kategori ipucu 5 geçerli tahminden sonra açılır.",
+  howFormsLabel: "Kelime biçimleri:",
+  howFormsText: "Sözlük biçimlerini kullan; fiilleri -mak/-mek mastarıyla yaz.",
   yourGuess: "Tahminin",
   guess: "Tahmin et",
   wordHint: "Kelime ipucu",

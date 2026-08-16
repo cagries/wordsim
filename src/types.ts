@@ -8,6 +8,7 @@ export interface ExtractorMetadata {
 
 export type LanguageCode = "en" | "tr";
 export type NormalizationStrategy = "en-lower-nfc-v1" | "tr-modern-lower-nfc-v1";
+export type VocabularyPolicy = "wordfreq-surface-v1" | "stanza-tr-guarded-v1";
 
 export interface CollectionSummary {
   id: string;
@@ -43,6 +44,7 @@ export interface VocabularyData {
   version: string;
   language: LanguageCode;
   normalization: NormalizationStrategy;
+  vocabularyPolicy: VocabularyPolicy;
   keyEncoding: "plain";
   keys: string[];
 }
