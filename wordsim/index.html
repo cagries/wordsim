@@ -24,7 +24,6 @@
         <p id="how-intro">Find the hidden word by guessing one common English word at a time.</p>
         <ul>
           <li><strong id="how-first-label">First guess:</strong> <span id="how-first-text">You start with no prior information, guess anything!</span></li>
-          <li><strong id="how-similarity-label">Similarity:</strong> <span id="how-similarity-text">Higher scores mean the words are closer in meaning, with 100 being the maximum.</span></li>
           <li><strong id="how-ranking-label">Ranking:</strong> <span id="how-ranking-text">Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).</span></li>
           <li><strong id="how-hints-label">Hints:</strong> <span id="how-hints-text">Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.</span></li>
           <li id="how-forms-item" hidden><strong id="how-forms-label"></strong> <span id="how-forms-text"></span></li>
@@ -75,13 +74,11 @@
         <thead>
           <tr>
             <th id="word-heading" scope="col">Word</th>
-            <th id="similarity-heading" scope="col">Similarity</th>
             <th id="ranking-heading" scope="col">Ranking</th>
           </tr>
         </thead>
         <tbody id="guess-history">
           <tr class="history-placeholder">
-            <td>&nbsp;</td>
             <td>&nbsp;</td>
             <td>&nbsp;</td>
           </tr>

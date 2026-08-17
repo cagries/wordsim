@@ -11,25 +11,25 @@ describe("guess feedback translations", () => {
 
   it("formats compact English results", () => {
     assert.equal(
-      TRANSLATIONS.en.rankedStatus("tiger", "72.46", 184),
-      "“tiger” · 72.46 · #184",
+      TRANSLATIONS.en.rankedStatus("tiger", 184),
+      "“tiger” · #184",
     );
     assert.equal(
-      TRANSLATIONS.en.coldStatus("apple", "28.13"),
-      "“apple” · 28.13 · cold",
+      TRANSLATIONS.en.coldStatus("apple"),
+      "“apple” · cold",
     );
-    assert.equal(TRANSLATIONS.en.solvedStatus("answer"), "Solved! “answer” · 100.00 · #1");
+    assert.equal(TRANSLATIONS.en.solvedStatus("answer"), "Solved! “answer” · #1");
   });
 
   it("formats compact Turkish results", () => {
     assert.equal(
-      TRANSLATIONS.tr.rankedStatus("kaplan", "72.46", 184),
-      "“kaplan” · 72.46 · #184",
+      TRANSLATIONS.tr.rankedStatus("kaplan", 184),
+      "“kaplan” · #184",
     );
     assert.equal(
-      TRANSLATIONS.tr.coldStatus("elma", "28.13"),
-      "“elma” · 28.13 · uzak",
+      TRANSLATIONS.tr.coldStatus("elma"),
+      "“elma” · uzak",
     );
-    assert.equal(TRANSLATIONS.tr.solvedStatus("cevap"), "Çözdün! “cevap” · 100.00 · #1");
+    assert.equal(TRANSLATIONS.tr.solvedStatus("cevap"), "Çözdün! “cevap” · #1");
   });
 });

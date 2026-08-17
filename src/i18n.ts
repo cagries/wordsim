@@ -13,8 +13,6 @@ export interface Translations {
   howIntro: string;
   howFirstLabel: string;
   howFirstText: string;
-  howSimilarityLabel: string;
-  howSimilarityText: string;
   howRankingLabel: string;
   howRankingText: string;
   howHintsLabel: string;
@@ -33,7 +31,6 @@ export interface Translations {
   choosePuzzle: string;
   history: string;
   word: string;
-  similarity: string;
   ranking: string;
   puzzles: string;
   resetSelectedPuzzle: string;
@@ -54,8 +51,8 @@ export interface Translations {
   progressRestored: string;
   solvedStatus: (word: string) => string;
   gaveUpStatus: (word: string) => string;
-  coldStatus: (word: string, score: string) => string;
-  rankedStatus: (word: string, score: string, rank: number) => string;
+  coldStatus: (word: string) => string;
+  rankedStatus: (word: string, rank: number) => string;
   resetStatus: string;
   noHintsStatus: string;
   hintStatus: (word: string, rank: number, closest: boolean) => string;
@@ -79,8 +76,6 @@ const english: Translations = {
   howIntro: "Find the hidden word by guessing one common English word at a time.",
   howFirstLabel: "First guess:",
   howFirstText: "You start with no prior information, guess anything!",
-  howSimilarityLabel: "Similarity:",
-  howSimilarityText: "Higher scores mean the words are closer in meaning, with 100 being the maximum.",
   howRankingLabel: "Ranking:",
   howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).",
   howHintsLabel: "Hints:",
@@ -99,7 +94,6 @@ const english: Translations = {
   choosePuzzle: "Choose a puzzle",
   history: "History",
   word: "Word",
-  similarity: "Similarity",
   ranking: "Ranking",
   puzzles: "Puzzles",
   resetSelectedPuzzle: "Reset selected puzzle",
@@ -125,10 +119,10 @@ const english: Translations = {
   loadingPuzzle: (number) => `Loading Puzzle ${number}…`,
   tryWord: "Try any common English word.",
   progressRestored: "Progress restored. Keep guessing.",
-  solvedStatus: (word) => `Solved! “${word}” · 100.00 · #1`,
+  solvedStatus: (word) => `Solved! “${word}” · #1`,
   gaveUpStatus: (word) => `You gave up. The word was “${word}”.`,
-  coldStatus: (word, score) => `“${word}” · ${score} · cold`,
-  rankedStatus: (word, score, rank) => `“${word}” · ${score} · #${rank}`,
+  coldStatus: (word) => `“${word}” · cold`,
+  rankedStatus: (word, rank) => `“${word}” · #${rank}`,
   resetStatus: "Puzzle reset. Try any common English word.",
   noHintsStatus: "No safer word hints remain.",
   hintStatus: (word, rank, closest) => `Hint: “${word}” is ranked #${rank}.${closest ? " This is the closest available hint." : ""}`,
@@ -136,7 +130,7 @@ const english: Translations = {
   revealConfirmation: "Reveal the answer and end this attempt?",
   loadError: "Could not start the game.",
   puzzleLoadError: "Could not load this puzzle.",
-  guessFallbackError: "That guess could not be scored.",
+  guessFallbackError: "That guess could not be ranked.",
   hintFallbackError: "Could not reveal a hint.",
   answerFallbackError: "Could not reveal the answer.",
   about: "About",
@@ -160,8 +154,6 @@ const turkish: Translations = {
   howIntro: "Hedefe gittikçe yakınlaşan kelimeler tahmin ederek gizli kelimeyi bul.",
   howFirstLabel: "İlk tahmin:",
   howFirstText: "Başlangıçta hiçbir ipucun yok, aklından herhangi bir kelimeyi dene!",
-  howSimilarityLabel: "Benzerlik:",
-  howSimilarityText: "Tahminin puanı gizli kelimeye olan benzerliği gösteriyor. En yüksek puan 100.",
   howRankingLabel: "Sıralama:",
   howRankingText: "Daha düşük sıralama, o kelime daha yakın anlamına geliyor. #1 gizli kelime, “uzak” tahmin ise en yakın 1000 kelimenin dışında. Renkler uzaktaki mavi tonlardan yakındaki kırmızı tonlara ilerler.",
   howHintsLabel: "İpuçları:",
@@ -180,7 +172,6 @@ const turkish: Translations = {
   choosePuzzle: "Bir bulmaca seç",
   history: "Tahminler",
   word: "Kelime",
-  similarity: "Benzerlik",
   ranking: "Sıralama",
   puzzles: "Bulmacalar",
   resetSelectedPuzzle: "Seçili bulmacayı sıfırla",
@@ -206,10 +197,10 @@ const turkish: Translations = {
   loadingPuzzle: (number) => `${number}. bulmaca yükleniyor…`,
   tryWord: "Yaygın bir Türkçe kelime dene.",
   progressRestored: "İlerlemen geri yüklendi. Tahmine devam et.",
-  solvedStatus: (word) => `Çözdün! “${word}” · 100.00 · #1`,
+  solvedStatus: (word) => `Çözdün! “${word}” · #1`,
   gaveUpStatus: (word) => `Vazgeçtin. Kelime “${word}” idi.`,
-  coldStatus: (word, score) => `“${word}” · ${score} · uzak`,
-  rankedStatus: (word, score, rank) => `“${word}” · ${score} · #${rank}`,
+  coldStatus: (word) => `“${word}” · uzak`,
+  rankedStatus: (word, rank) => `“${word}” · #${rank}`,
   resetStatus: "Bulmaca sıfırlandı. Yaygın bir Türkçe kelime dene.",
   noHintsStatus: "Gösterilebilecek daha yakın kelime ipucu kalmadı.",
   hintStatus: (word, rank, closest) => `İpucu: “${word}” #${rank} sırada.${closest ? " Bu, kullanılabilir en yakın ipucu." : ""}`,
@@ -217,7 +208,7 @@ const turkish: Translations = {
   revealConfirmation: "Cevabı gösterip bu denemeyi bitirmek istiyor musun?",
   loadError: "Oyun başlatılamadı.",
   puzzleLoadError: "Bu bulmaca yüklenemedi.",
-  guessFallbackError: "Bu tahmin puanlanamadı.",
+  guessFallbackError: "Bu tahmin sıralanamadı.",
   hintFallbackError: "İpucu gösterilemedi.",
   answerFallbackError: "Cevap gösterilemedi.",
   about: "Hakkında",

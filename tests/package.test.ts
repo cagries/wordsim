@@ -38,9 +38,21 @@ describe("standalone package", () => {
   it("includes a collapsed, native how-to-play disclosure", () => {
     assert.match(indexHtml, /<details class="how-to-play">\s*<summary id="how-summary">How to play\??<\/summary>/);
     assert.doesNotMatch(indexHtml, /<details class="how-to-play"[^>]*\sopen(?:[\s>])/);
-    for (const text of ["Similarity:", "Ranking:", "cold", "category hint"]) {
+    for (const text of ["Ranking:", "cold", "blue", "red", "category hint"]) {
       assert.match(indexHtml, new RegExp(text, "i"));
     }
+    assert.doesNotMatch(indexHtml, /Similarity:/);
+    assert.doesNotMatch(indexHtml, /id="how-similarity-/);
+  });
+
+  it("presents rank without a numeric similarity column", () => {
+    const tableHead = indexHtml.match(/<thead>([\s\S]*?)<\/thead>/)?.[1] ?? "";
+    const placeholder = indexHtml.match(
+      /<tr class="history-placeholder">([\s\S]*?)<\/tr>/,
+    )?.[1] ?? "";
+    assert.equal(tableHead.match(/<th\b/g)?.length, 2);
+    assert.equal(placeholder.match(/<td\b/g)?.length, 2);
+    assert.doesNotMatch(indexHtml, /id="similarity-heading"/);
   });
 
   it("includes a language control and localizable static copy", () => {

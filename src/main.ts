@@ -5,7 +5,6 @@ import {
   canRevealCategoryHint,
   CATEGORY_GUESS_REQUIREMENT,
   CLOSEST_HINT_RANK,
-  formatScore,
   GameSession,
   GuessError,
 } from "./game";
@@ -49,8 +48,6 @@ const howSummary = requiredElement<HTMLElement>("how-summary");
 const howIntro = requiredElement<HTMLElement>("how-intro");
 const howFirstLabel = requiredElement<HTMLElement>("how-first-label");
 const howFirstText = requiredElement<HTMLElement>("how-first-text");
-const howSimilarityLabel = requiredElement<HTMLElement>("how-similarity-label");
-const howSimilarityText = requiredElement<HTMLElement>("how-similarity-text");
 const howRankingLabel = requiredElement<HTMLElement>("how-ranking-label");
 const howRankingText = requiredElement<HTMLElement>("how-ranking-text");
 const howHintsLabel = requiredElement<HTMLElement>("how-hints-label");
@@ -75,7 +72,6 @@ const historyCount = requiredElement<HTMLSpanElement>("history-count");
 const historySection = requiredElement<HTMLElement>("history-section");
 const guessesHeading = requiredElement<HTMLElement>("guesses-heading");
 const wordHeading = requiredElement<HTMLElement>("word-heading");
-const similarityHeading = requiredElement<HTMLElement>("similarity-heading");
 const rankingHeading = requiredElement<HTMLElement>("ranking-heading");
 const puzzlesHeading = requiredElement<HTMLElement>("puzzles-heading");
 const startedLegend = requiredElement<HTMLElement>("started-legend");
@@ -118,8 +114,6 @@ function applyTranslations(): void {
   howIntro.textContent = messages.howIntro;
   howFirstLabel.textContent = messages.howFirstLabel;
   howFirstText.textContent = messages.howFirstText;
-  howSimilarityLabel.textContent = messages.howSimilarityLabel;
-  howSimilarityText.textContent = messages.howSimilarityText;
   howRankingLabel.textContent = messages.howRankingLabel;
   howRankingText.textContent = messages.howRankingText;
   howHintsLabel.textContent = messages.howHintsLabel;
@@ -134,7 +128,6 @@ function applyTranslations(): void {
   puzzleGrid.setAttribute("aria-label", messages.choosePuzzle);
   guessesHeading.textContent = messages.history;
   wordHeading.textContent = messages.word;
-  similarityHeading.textContent = messages.similarity;
   rankingHeading.textContent = messages.ranking;
   puzzlesHeading.textContent = messages.puzzles;
   resetButton.textContent = messages.resetSelectedPuzzle;
@@ -250,7 +243,7 @@ function renderResults(results: readonly GuessResult[]): void {
   if (empty) {
     const row = history.insertRow();
     row.className = "history-placeholder";
-    for (let index = 0; index < 3; index += 1) {
+    for (let index = 0; index < 2; index += 1) {
       row.insertCell().textContent = "\u00a0";
     }
     return;
@@ -273,7 +266,6 @@ function renderResults(results: readonly GuessResult[]): void {
       badge.textContent = messages.answerBadge;
       wordCell.append(badge);
     }
-    row.insertCell().textContent = formatScore(result.score);
     const rankCell = row.insertCell();
     const temperature = document.createElement("span");
     temperature.className = "temperature-pill";
@@ -512,11 +504,10 @@ form.addEventListener("submit", (event) => {
       setStatus(messages.solvedStatus(result.word), "success", temperatureForRank(1));
       setGuessingEnabled(false);
     } else {
-      const score = formatScore(result.score);
       setStatus(
         result.rank === null
-          ? messages.coldStatus(result.word, score)
-          : messages.rankedStatus(result.word, score, result.rank),
+          ? messages.coldStatus(result.word)
+          : messages.rankedStatus(result.word, result.rank),
         "result",
         temperatureForRank(result.rank),
       );

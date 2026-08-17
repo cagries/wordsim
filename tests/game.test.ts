@@ -5,7 +5,6 @@ import {
   canRevealCategoryHint,
   CATEGORY_GUESS_REQUIREMENT,
   encodeGuessKey,
-  formatScore,
   GameSession,
   GuessError,
   isValidGuessWord,
@@ -75,13 +74,6 @@ describe("Turkish GameSession", () => {
     const session = new GameSession(turkishVocabulary, turkishPuzzle);
     assert.equal(session.guess("KÂR").word, "kar");
     assert.equal(session.guess("IŞIK").solved, true);
-  });
-});
-
-describe("formatScore", () => {
-  it("formats signed basis-point values", () => {
-    assert.equal(formatScore(-1200), "-12.00");
-    assert.equal(formatScore(7345), "73.45");
   });
 });
 

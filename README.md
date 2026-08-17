@@ -177,7 +177,7 @@ npm run build:site
 
 ## Data format and future extractors
 
-`wordsim/data/catalog.json` lists the available language collections and their manifests. Each vocabulary records its language, named normalization policy, and language-specific vocabulary policy. Scores are signed integers equal to `round(cosine_similarity * 10000)`. The UI divides them by 100, so a cosine of `0.7345` appears as `73.45`. Each puzzle also contains the vocabulary indices of its nearest 1,000 words.
+`wordsim/data/catalog.json` lists the available language collections and their manifests. Each vocabulary records its language, named normalization policy, and language-specific vocabulary policy. Scores are signed integers equal to `round(cosine_similarity * 10000)` and remain available internally for ordering results. The game UI presents proximity through rank and temperature instead of exposing the raw numeric score. Each puzzle also contains the vocabulary indices of its nearest 1,000 words.
 
 The Python extractor boundary returns a normalized NumPy matrix. Sentence Transformers and selectively loaded binary Word2Vec vectors therefore reuse the same scoring code without exposing a model selector in the user interface.
 

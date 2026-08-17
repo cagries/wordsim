@@ -34,10 +34,6 @@ export function isValidGuessWord(word: string, language: LanguageCode): boolean 
   return language === "tr" ? /^[a-zçğıöşü]+$/.test(word) : /^[a-z]+$/.test(word);
 }
 
-export function formatScore(score: number): string {
-  return (score / 100).toFixed(2);
-}
-
 export function encodeGuessKey(word: string, vocabulary: VocabularyData): string {
   if (vocabulary.keyEncoding !== "plain") {
     throw new Error(`Unsupported vocabulary encoding: ${String(vocabulary.keyEncoding)}.`);
