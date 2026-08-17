@@ -126,6 +126,18 @@ Then open `http://localhost:4000/example/wordsim/`.
 
 The repository intentionally contains no deployment workflow. `npm run build:site` bundles the browser code and creates the local `_site/` output.
 
+## Releases
+
+The application follows semantic versioning and records user-facing changes in [CHANGELOG.md](CHANGELOG.md). The version in `package.json` is authoritative and is kept in sync with the Python pipeline package metadata in `pyproject.toml`.
+
+For a release:
+
+1. Update both package versions and move the relevant changelog entries from `Unreleased` into a dated release section.
+2. Run the TypeScript and Python tests and build the production game and Jekyll site.
+3. Commit the release, then manually tag that commit as `vX.Y.Z`.
+
+The deployed English-only baseline is `v1.0.0`; the first English and Turkish release is `v1.1.0`. Collection IDs and vocabulary versions remain independent because they identify generated similarity data rather than the application release.
+
 ## Add to another static or Jekyll site
 
 The complete runtime is the `wordsim/` directory:

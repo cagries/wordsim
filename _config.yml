@@ -13,5 +13,6 @@ exclude:
   - package.json
   - pyproject.toml
   - README.md
+  - CHANGELOG.md
   - THIRD_PARTY_NOTICES.md
   - tsconfig.json

@@ -1,4 +1,5 @@
 import "./styles.css";
+import { version as APP_VERSION } from "../package.json";
 import { loadCatalog, loadCollection, loadPuzzle } from "./data";
 import {
   canRevealCategoryHint,
@@ -78,6 +79,11 @@ const puzzlesHeading = requiredElement<HTMLElement>("puzzles-heading");
 const startedLegend = requiredElement<HTMLElement>("started-legend");
 const solvedLegend = requiredElement<HTMLElement>("solved-legend");
 const revealedLegend = requiredElement<HTMLElement>("revealed-legend");
+const appVersion = requiredElement<HTMLElement>("app-version");
+const aboutSummary = requiredElement<HTMLElement>("about-summary");
+const aboutDescription = requiredElement<HTMLElement>("about-description");
+
+appVersion.textContent = `v${APP_VERSION}`;
 
 let catalog: CollectionCatalog | null = null;
 let activeCollection: CollectionSummary | null = null;
@@ -133,7 +139,8 @@ function applyTranslations(): void {
   startedLegend.textContent = `● ${messages.started}`;
   solvedLegend.textContent = `✓ ${messages.solved}`;
   revealedLegend.textContent = `× ${messages.answerRevealed}`;
-
+  aboutSummary.textContent = messages.about;
+  aboutDescription.textContent = messages.aboutDescription;
 }
 
 function populateLanguageSelect(loadedCatalog: CollectionCatalog): void {

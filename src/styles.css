@@ -96,6 +96,19 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .puzzle-button.selected { outline: 3px solid #176b50; outline-offset: 1px; }
 .puzzle-legend { display: flex; gap: 1rem; margin: 0.65rem 0 0; color: #62645f; font-size: 0.85rem; }
 
+.game-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d7d2c8;
+  color: #62645f;
+  font-size: 0.85rem;
+}
+.about summary { width: fit-content; cursor: pointer; list-style: none; }
+.about summary::-webkit-details-marker { display: none; }
+.about summary:hover #about-summary { color: #176b50; }
+.about summary:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
+.about p { margin: 0.65rem 0 0; }
+
 .guess-form label { font-weight: 650; }
 .guess-row { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
 .guess-row input { min-width: 0; flex: 1; padding: 0.75rem; }
@@ -165,6 +178,9 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .puzzle-button[data-state="revealed"] { background: #542b1d; border-color: #d18b69; color: #ffd5c1; }
   .puzzle-button.selected { outline-color: #71d3ad; }
   .puzzle-legend { color: #afb5a8; }
+  .game-footer { border-color: #43483f; color: #afb5a8; }
+  .about summary:hover #about-summary { color: #71d3ad; }
+  .about summary:focus-visible { outline-color: #71d3ad; }
   .category-clue { background: #39305e; color: #ded7ff; }
   .hint-badge { background: #66551c; color: #ffecac; }
   .answer-row { background: #542b1d; }

@@ -12,6 +12,9 @@ import type {
 
 const packageRoot = path.join(process.cwd(), "wordsim");
 const indexHtml = readFileSync(path.join(packageRoot, "index.html"), "utf8");
+const packageMetadata = JSON.parse(
+  readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+) as { version: string };
 
 describe("standalone package", () => {
   it("uses only directory-relative runtime references", () => {
@@ -47,6 +50,28 @@ describe("standalone package", () => {
     for (const id of ["tagline", "guess-label", "guesses-heading", "how-summary"]) {
       assert.match(indexHtml, new RegExp(`id="${id}"`));
     }
+  });
+
+  it("includes a collapsed, localizable footer disclosure", () => {
+    assert.match(indexHtml, /<footer class="game-footer">/);
+    assert.match(indexHtml, /<details class="about">\s*<summary>/);
+    assert.doesNotMatch(indexHtml, /<details class="about"[^>]*\sopen(?:[\s>])/);
+    for (const id of ["app-version", "about-summary", "about-description"]) {
+      assert.match(indexHtml, new RegExp(`id="${id}"`));
+    }
+    assert.match(indexHtml, /A word guessing game based on word similarities\./);
+  });
+
+  it("keeps release metadata synchronized", () => {
+    const pyproject = readFileSync(path.join(process.cwd(), "pyproject.toml"), "utf8");
+    const changelog = readFileSync(path.join(process.cwd(), "CHANGELOG.md"), "utf8");
+    const pipelineVersion = pyproject.match(/^version = "(\d+\.\d+\.\d+)"$/m)?.[1];
+    const latestRelease = changelog.match(
+      /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
+    )?.[1];
+    assert.equal(packageMetadata.version, "1.1.0");
+    assert.equal(pipelineVersion, packageMetadata.version);
+    assert.equal(latestRelease, packageMetadata.version);
   });
 
   it("contains every runtime file referenced by every catalog collection", () => {
