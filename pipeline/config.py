@@ -74,8 +74,9 @@ class CollectionConfig:
 
 
 ENGLISH_COLLECTION_ID = "embeddinggemma-768-en-v1"
-TURKISH_COLLECTION_ID = "embeddingmagibu-768-tr-v1"
+TURKISH_MAGIBU_COLLECTION_ID = "embeddingmagibu-768-tr-v1"
 TURKISH_WORD2VEC_COLLECTION_ID = "word2vec-skipgram-300-tr-v1"
+TURKISH_COLLECTION_ID = TURKISH_WORD2VEC_COLLECTION_ID
 COLLECTIONS = {
     ENGLISH_COLLECTION_ID: CollectionConfig(
         id=ENGLISH_COLLECTION_ID,
@@ -93,11 +94,11 @@ COLLECTIONS = {
             dimensions=768,
         ),
     ),
-    TURKISH_COLLECTION_ID: CollectionConfig(
-        id=TURKISH_COLLECTION_ID,
+    TURKISH_MAGIBU_COLLECTION_ID: CollectionConfig(
+        id=TURKISH_MAGIBU_COLLECTION_ID,
         language="tr",
-        label="Türkçe",
-        short_label="TR",
+        label="Türkçe — EmbeddingMagibu",
+        short_label="TR-MAG",
         normalization="tr-modern-lower-nfc-v1",
         vocabulary_policy="zeyrek-tr-reviewed-v1",
         targets=Path(__file__).with_name("targets") / "tr.json",
@@ -108,12 +109,13 @@ COLLECTIONS = {
             prompt=STS_PROMPT,
             dimensions=768,
         ),
+        published=False,
     ),
     TURKISH_WORD2VEC_COLLECTION_ID: CollectionConfig(
         id=TURKISH_WORD2VEC_COLLECTION_ID,
         language="tr",
-        label="Türkçe — Word2Vec Skip-gram",
-        short_label="TR-W2V",
+        label="Türkçe",
+        short_label="TR",
         normalization="tr-modern-lower-nfc-v1",
         vocabulary_policy="zeyrek-tr-reviewed-word2vec-covered-v1",
         targets=Path(__file__).with_name("targets") / "tr.json",
@@ -148,13 +150,7 @@ COLLECTIONS = {
                 ),
             ),
         ),
-        published=False,
-        vocabulary_source=(
-            DATA_ROOT
-            / "collections"
-            / TURKISH_COLLECTION_ID
-            / "vocabulary.json"
-        ),
+        published=True,
     ),
 }
 DEFAULT_COLLECTION_ID = ENGLISH_COLLECTION_ID

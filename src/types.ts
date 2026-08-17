@@ -1,15 +1,38 @@
-export interface ExtractorMetadata {
-  id: "embeddinggemma" | "embeddingmagibu";
+interface SentenceTransformerMetadata {
+  id: "embeddinggemma";
+  kind?: "sentence-transformer";
   model: string;
   revision: string;
-  prompt: string;
+  prompt: "task: sentence similarity | query: ";
   dimensions: 768;
   trustRemoteCode: false;
 }
 
+interface Word2VecArtifactMetadata {
+  release: "v1.0.0";
+  archive: "word2vec_10ep-300emb.zip";
+  member: "word2vec_10ep-300emb.bin";
+}
+
+interface Word2VecMetadata {
+  id: "word2vec-skipgram";
+  kind: "word2vec-binary";
+  model: string;
+  revision: "v1.0.0";
+  prompt: "";
+  dimensions: 300;
+  trustRemoteCode: false;
+  artifact: Word2VecArtifactMetadata;
+  artifactSha256: string;
+}
+
+export type ExtractorMetadata = SentenceTransformerMetadata | Word2VecMetadata;
+
 export type LanguageCode = "en" | "tr";
 export type NormalizationStrategy = "en-lower-nfc-v1" | "tr-modern-lower-nfc-v1";
-export type VocabularyPolicy = "wordfreq-surface-v1" | "zeyrek-tr-reviewed-v1";
+export type VocabularyPolicy =
+  | "wordfreq-surface-v1"
+  | "zeyrek-tr-reviewed-word2vec-covered-v1";
 
 export interface CollectionSummary {
   id: string;

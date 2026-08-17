@@ -11,10 +11,11 @@ Run the normal collection command after installing the project into the `game/` 
 ```sh
 source game/bin/activate
 pip install -e .
-python -m pipeline generate --collection embeddingmagibu-768-tr-v1
+python -m pipeline fetch --collection word2vec-skipgram-300-tr-v1
+python -m pipeline generate --collection word2vec-skipgram-300-tr-v1
 ```
 
-The generated vocabulary records `vocabularyPolicy: "zeyrek-tr-reviewed-v1"`. This policy is distinct from the input normalization policy, `tr-modern-lower-nfc-v1`.
+The model-independent reviewed base is identified as `zeyrek-tr-reviewed-v1`. The served, Word2Vec-covered derivative records `vocabularyPolicy: "zeyrek-tr-reviewed-word2vec-covered-v1"`. Both are distinct from the input normalization policy, `tr-modern-lower-nfc-v1`.
 
 ## Lexical policy
 
@@ -54,12 +55,12 @@ Zeyrek is an alpha-stage partial Python port of Zemberek. Its lexicon and morpho
 
 The circumflex collapse remains deliberate: `â`, `î`, and `û` normalize to `a`, `i`, and `u`. This helps ordinary Turkish-keyboard input, while knowingly merging distinctions such as `kar`/`kâr`, `hala`/`hâlâ`, and `aşık`/`âşık`.
 
-The Turkish collection uses the Turkish-focused `alibayram/embeddingmagibu-200m` model, pinned to an immutable revision and loaded with remote-code execution disabled. It uses the model's sentence-similarity prompt, `task: sentence similarity | query: `, and stores normalized 768-dimensional embeddings. The collection ID is therefore `embeddingmagibu-768-tr-v1`.
+The served Turkish collection uses the released 300-dimensional skip-gram Word2Vec table. The earlier `alibayram/embeddingmagibu-200m` configuration remains available for offline comparisons, but its generated data is not part of the runtime package.
 
 After deployment, any incompatible normalization, vocabulary-policy, or embedding-model change should use a new collection ID to preserve browser progress and reproducibility.
 
 ## Static Word2Vec coverage policy
 
-The offline `word2vec-skipgram-300-tr-v1` trial starts from this collection's exact reviewed vocabulary, then keeps only words present in the released binary model. Word2Vec has no out-of-vocabulary inference, so missing entries are reported rather than approximated with subword vectors or another model. The ordering of retained words remains the original `wordfreq`/Zeyrek ordering, and all configured puzzle targets must be covered.
+The `word2vec-skipgram-300-tr-v1` collection starts from this exact reviewed vocabulary, then keeps only words present in the released binary model. Word2Vec has no out-of-vocabulary inference, so missing entries are reported rather than approximated with subword vectors or another model. The ordering of retained words remains the original `wordfreq`/Zeyrek ordering, and all configured puzzle targets must be covered.
 
 Only NFC normalization is applied while reading model tokens. In particular, the game's circumflex collapse is not applied to model entries: mapping `hâlâ` onto `hala`, for example, could select the wrong sense or create a collision. This conservative choice can reduce coverage, but the resulting `coverage-audit.json` records that cost explicitly and keeps the experiment reproducible.

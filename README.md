@@ -2,7 +2,7 @@
 
 A small game that scores guesses by semantic similarity. The game is a standalone static page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline. This repository also includes a Jekyll landing page for local previewing.
 
-The demo contains English and Turkish collections, each with 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`. English uses EmbeddingGemma, while Turkish uses the Turkish-focused EmbeddingMagibu model. The browser downloads the selected language's shared vocabulary and one compact score table at a time: 30,000 English words or 12,812 morphologically filtered Turkish words.
+The demo contains English and Turkish collections, each with 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`. English uses EmbeddingGemma, while Turkish uses a Turkish skip-gram Word2Vec model. The browser downloads the selected language's shared vocabulary and one compact score table at a time: 30,000 English words or 12,478 morphologically filtered, model-covered Turkish words.
 
 Players can switch the fully localized interface between English and Turkish with the language selector beside the title. On the first visit, the browser language selects a collection when possible; an explicit choice is remembered. Puzzle progress is stored separately for each collection, and existing English progress from the original single-language release is imported automatically.
 
@@ -13,7 +13,7 @@ Players choose puzzles from a responsive numbered grid. Started, solved, and ans
 - Node.js 18 or newer
 - Ruby 3.3 and Bundler
 - Python 3.11 or newer
-- A Hugging Face account with the [EmbeddingGemma terms](https://huggingface.co/google/embeddinggemma-300m) accepted when generating English data; the Turkish EmbeddingMagibu model is ungated
+- A Hugging Face account with the [EmbeddingGemma terms](https://huggingface.co/google/embeddinggemma-300m) accepted when generating English data
 
 ## Install
 
@@ -33,24 +33,25 @@ The model download is gated but approval is immediate after accepting Google's t
 ```sh
 source game/bin/activate
 python -m pipeline generate --collection embeddinggemma-768-en-v1
-python -m pipeline generate --collection embeddingmagibu-768-tr-v1
+python -m pipeline fetch --collection word2vec-skipgram-300-tr-v1
+python -m pipeline generate --collection word2vec-skipgram-300-tr-v1
 python -m pipeline audit --collection embeddinggemma-768-en-v1 --limit 25
-python -m pipeline audit --collection embeddingmagibu-768-tr-v1 --limit 25
+python -m pipeline audit --collection word2vec-skipgram-300-tr-v1 --limit 25
 ```
 
 Generation performs the following work:
 
 1. Selects and normalizes entries from `wordfreq`: the 30,000 most frequent valid English surface forms, or the reviewed Zeyrek-preprocessed Turkish vocabulary.
-2. Encodes `task: sentence similarity | query: <word>` with the collection's pinned model revision: EmbeddingGemma for English or EmbeddingMagibu for Turkish.
+2. Encodes the vocabulary with the collection's pinned extractor: prompted EmbeddingGemma for English or the static Word2Vec table for Turkish.
 3. Stores normalized embeddings in `pipeline-cache/<collection-id>/embeddings.npy` for reuse.
 4. Reads the language's 50 stable IDs, words, and categories from `pipeline/targets/`.
 5. Writes a versioned vocabulary, collection manifest, and 50 minified puzzle tables under `wordsim/data/collections/<collection-id>/`, plus the shared `catalog.json`.
 
 Useful generator options include `--device mps`, `--device cuda`, `--batch-size N`, `--targets PATH`, and `--force`. The default uses the framework-selected embedding device and float32 model activations; Zeyrek preprocessing runs on the CPU from resources installed with the package. A valid generated vocabulary and embedding cache can be reused without loading the model dependencies. Turkish generation writes a detailed, ignored review artifact to `pipeline-cache/<collection-id>/vocabulary-audit.json`. Embedding regeneration is automatic if the model, prompt, Sentence Transformers version, or vocabulary checksum changes.
 
-### Offline Turkish Word2Vec trial
+### Turkish Word2Vec model
 
-An unlisted third collection evaluates the 300-dimensional Turkish Word2Vec skip-gram vectors published with [A Comprehensive Analysis of Static Word Embeddings for Turkish](https://arxiv.org/abs/2405.07778). It does not appear in `catalog.json` and cannot affect the deployed language selector or Magibu progress.
+The published Turkish collection uses the 300-dimensional Word2Vec skip-gram vectors released with [A Comprehensive Analysis of Static Word Embeddings for Turkish](https://arxiv.org/abs/2405.07778). EmbeddingMagibu remains configured as an unpublished pipeline option for future comparisons, but none of its vocabulary or similarity tables are shipped in `wordsim/`.
 
 ```sh
 source game/bin/activate
@@ -61,7 +62,7 @@ python -m pipeline audit --collection word2vec-skipgram-300-tr-v1 --limit 25
 
 `fetch` resumably downloads the 1.77 GB `word2vec_10ep-300emb.zip` release asset, verifies its byte size and pinned checksums, and extracts the single binary model under `pipeline-cache/sources/`. The archive SHA-256 is `b91a2106e39d323b92fd5fab5f61636d9ee6ca8378f3a456f6f8a33066c65b51`; the extracted model SHA-256 is `ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f`. The ZIP can be deleted after successful extraction to recover about 1.77 GB; the verified model and receipt are sufficient for generation and later fetch checks. The ZIP is treated as the skip-gram export because the release provides CBOW separately and the repository's Word2Vec training script defaults to `sg=1`; this provenance is an explicit inference rather than separate release metadata. Neither archive nor extracted model is committed.
 
-Generation scans the binary file without loading its full 1.57-million-token vocabulary into memory. It retains exact NFC matches from the existing 12,812-word reviewed Turkish vocabulary, writes a coverage report to `pipeline-cache/word2vec-skipgram-300-tr-v1/coverage-audit.json`, and stages puzzles under `pipeline-cache/staging/word2vec-skipgram-300-tr-v1/`. Missing non-target words are omitted without reordering the rest. Any missing puzzle target, malformed vector, checksum failure, or coverage below 1,000 words stops generation.
+Generation scans the binary file without loading its full 1.57-million-token vocabulary into memory. It retains exact NFC matches from the 12,812-word reviewed Turkish base vocabulary and writes a coverage report to `pipeline-cache/word2vec-skipgram-300-tr-v1/coverage-audit.json`. Missing non-target words are omitted without reordering the rest. Any missing puzzle target, malformed vector, checksum failure, or coverage below 1,000 words stops generation.
 
 With the pinned release, 12,478 of 12,812 requested words are covered (97.3931%), including all 50 puzzle targets. The resulting local float32 cache is 14,973,728 bytes. This measured baseline should be rechecked if either the reviewed Turkish vocabulary or artifact identity changes.
 
@@ -75,7 +76,7 @@ The accepted Turkish character set is `a-zçğıöşü`. It intentionally includ
 
 The normalization decision is identified as `tr-modern-lower-nfc-v1` in generated vocabulary metadata. A separate `zeyrek-tr-reviewed-v1` vocabulary policy uses Zeyrek's lexicon to discard proper nouns and selected noun/adjective inflections while taking verb infinitives directly from dictionary lemmas. A checked-in review file resolves suspicious English/Turkish overlaps and causes generation to fail when a new suspect has not been classified. The rules, measured baseline, override workflow, and limitations are documented in [docs/turkish-vocabulary.md](docs/turkish-vocabulary.md).
 
-The current Turkish collection ID was retained because it had not been deployed when preprocessing was introduced. Once a collection is deployed, changing either policy requires regenerated data and a new collection ID so browser progress remains reproducible.
+The served Turkish collection is `word2vec-skipgram-300-tr-v1`. Its distinct ID intentionally starts fresh browser progress after the earlier Magibu collection while preserving the user's Turkish language selection. Future incompatible normalization, vocabulary-policy, or embedding-model changes require another collection ID.
 
 ## Storage and client footprint
 
@@ -86,27 +87,27 @@ The offline English embedding cache contains:
 23,040,000 values × 4 bytes (float32) = 92,160,000 bytes
 ```
 
-The actual English NumPy file is 92,160,128 bytes (92.16 MB, or 87.89 MiB including its header). The 12,812-word Turkish cache is 39,358,592 bytes (39.36 MB, or 37.54 MiB). These files are used only by the generator and are never sent to the browser. A cache remains the same size as more puzzles are added because every target in that collection reuses the shared vocabulary embeddings.
+The actual English NumPy file is 92,160,128 bytes (92.16 MB, or 87.89 MiB including its header). The 12,478-word Turkish Word2Vec cache is 14,973,728 bytes (14.97 MB, or 14.28 MiB). These files are used only by the generator and are never sent to the browser. A cache remains the same size as more puzzles are added because every target in that collection reuses the shared vocabulary embeddings.
 
 Measured static data sizes for the current build are:
 
 | Asset | Raw | Gzip level 9 |
 | --- | ---: | ---: |
-| Collection manifest | 3.1 KB | 602 B |
+| Collection manifest | 3.3 KB | 739 B |
 | English vocabulary (30,000 words) | 301.9 KB | 118.2 KB |
-| Turkish vocabulary (12,812 words) | 132.4 KB | 51.1 KB |
+| Turkish vocabulary (12,478 words) | 128.2 KB | 49.8 KB |
 | Typical English puzzle | 155.8 KB | 59.9 KB |
-| Typical Turkish puzzle | 69.2 KB | 28.0 KB |
+| Typical Turkish puzzle | 65.5 KB | 27.9 KB |
 
-The first puzzle therefore requires about 461 KB raw / 179 KB compressed for English or 205 KB raw / 80 KB compressed for Turkish, including the shared vocabulary and manifest. Each later puzzle fetches only its score table. The current minified JavaScript and CSS add about 28 KB raw.
+The first puzzle therefore requires about 461 KB raw / 179 KB compressed for English or 197 KB raw / 78 KB compressed for Turkish, including the shared vocabulary and manifest. Each later puzzle fetches only its score table. The current minified JavaScript and CSS add about 28 KB raw.
 
 The complete generated static data is:
 
 - English: 8.09 MB raw / 3.12 MB compressed, with a 92.16 MB local embedding cache.
-- Turkish: 3.60 MB raw / 1.45 MB compressed, with a 39.36 MB local embedding cache.
+- Turkish: 3.37 MB raw / 1.45 MB compressed, with a 14.97 MB local embedding cache.
 - First-puzzle transfer remains independent of the other 49 puzzles because tables are fetched on demand.
 
-The two current collections occupy 11.69 MB raw or about 4.57 MB with gzip. A typical player still downloads only the catalog, the vocabulary for the selected language, and the puzzle they select; switching languages lazily fetches the other vocabulary. Actual network transfer sizes depend on the production host enabling gzip or Brotli; without HTTP compression, the raw sizes apply.
+The two current collections occupy 11.47 MB raw or about 4.56 MB with gzip. A typical player still downloads only the catalog, the vocabulary for the selected language, and the puzzle they select; switching languages lazily fetches the other vocabulary. Actual network transfer sizes depend on the production host enabling gzip or Brotli; without HTTP compression, the raw sizes apply.
 
 ## Build and run
 
@@ -141,7 +142,7 @@ wordsim/
         │   ├── collection.json
         │   ├── vocabulary.json
         │   └── puzzles/
-        └── embeddingmagibu-768-tr-v1/
+        └── word2vec-skipgram-300-tr-v1/
             ├── collection.json
             ├── vocabulary.json
             └── puzzles/

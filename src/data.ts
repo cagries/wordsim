@@ -14,6 +14,33 @@ async function fetchJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+const WORD2VEC_MODEL_SHA256 =
+  "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f";
+
+function extractorIsSupported(manifest: CollectionManifest): boolean {
+  const extractor = manifest.extractor;
+  if (manifest.language === "en") {
+    return (
+      extractor?.id === "embeddinggemma" &&
+      extractor.dimensions === 768 &&
+      extractor.prompt === "task: sentence similarity | query: " &&
+      extractor.trustRemoteCode === false
+    );
+  }
+  return (
+    extractor?.id === "word2vec-skipgram" &&
+    extractor.kind === "word2vec-binary" &&
+    extractor.dimensions === 300 &&
+    extractor.prompt === "" &&
+    extractor.trustRemoteCode === false &&
+    extractor.revision === "v1.0.0" &&
+    extractor.artifact?.release === "v1.0.0" &&
+    extractor.artifact.archive === "word2vec_10ep-300emb.zip" &&
+    extractor.artifact.member === "word2vec_10ep-300emb.bin" &&
+    extractor.artifactSha256 === WORD2VEC_MODEL_SHA256
+  );
+}
+
 function resolveDataUrl(root: string, file: string): string {
   return `${root.replace(/\/$/, "")}/${file.replace(/^\//, "")}`;
 }
@@ -59,15 +86,11 @@ export async function loadCollection(
   const manifestUrl = resolveDataUrl(root, summary.file);
   const collectionRoot = parentUrl(manifestUrl);
   const manifest = await fetchJson<CollectionManifest>(manifestUrl);
-  const expectedExtractor = summary.language === "tr" ? "embeddingmagibu" : "embeddinggemma";
   if (
     manifest.schemaVersion !== 2 ||
     manifest.id !== summary.id ||
     manifest.language !== summary.language ||
-    manifest.extractor?.id !== expectedExtractor ||
-    manifest.extractor.dimensions !== 768 ||
-    manifest.extractor.prompt !== "task: sentence similarity | query: " ||
-    manifest.extractor.trustRemoteCode !== false ||
+    !extractorIsSupported(manifest) ||
     manifest.puzzles.length === 0
   ) {
     throw new Error("The puzzle collection is invalid or empty.");
@@ -84,7 +107,9 @@ export async function loadCollection(
       vocabulary.language === "tr" ? "tr-modern-lower-nfc-v1" : "en-lower-nfc-v1"
     ) ||
     vocabulary.vocabularyPolicy !== (
-      vocabulary.language === "tr" ? "zeyrek-tr-reviewed-v1" : "wordfreq-surface-v1"
+      vocabulary.language === "tr"
+        ? "zeyrek-tr-reviewed-word2vec-covered-v1"
+        : "wordfreq-surface-v1"
     ) ||
     vocabulary.version.length === 0
   ) {

@@ -20,6 +20,7 @@ from pipeline.config import (
     ENGLISH_COLLECTION_ID,
     TARGET_COUNT,
     TURKISH_COLLECTION_ID,
+    TURKISH_MAGIBU_COLLECTION_ID,
     TURKISH_WORD2VEC_COLLECTION_ID,
     catalog_value,
 )
@@ -66,36 +67,45 @@ class PipelineCoreTests(unittest.TestCase):
                 "animal", "object", "action", "adjective", "food", "place"
             })
 
-    def test_word2vec_trial_is_staged_and_not_catalogued(self) -> None:
+    def test_word2vec_is_published_and_magibu_is_staged(self) -> None:
         collection = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID]
-        self.assertFalse(collection.published)
+        self.assertTrue(collection.published)
         self.assertEqual(
             collection.output,
-            Path("pipeline-cache/staging/word2vec-skipgram-300-tr-v1"),
+            Path("wordsim/data/collections/word2vec-skipgram-300-tr-v1"),
         )
-        self.assertNotIn(
-            TURKISH_WORD2VEC_COLLECTION_ID,
+        self.assertEqual(
             {entry["id"] for entry in catalog_value()["collections"]},
+            {ENGLISH_COLLECTION_ID, TURKISH_WORD2VEC_COLLECTION_ID},
         )
         self.assertEqual(collection.extractor.kind, "word2vec-binary")
         self.assertEqual(collection.extractor.dimensions, 300)
-
-    def test_collections_pin_distinct_models_with_the_same_sts_prompt(self) -> None:
-        english = COLLECTIONS[ENGLISH_COLLECTION_ID].extractor
-        turkish = COLLECTIONS[TURKISH_COLLECTION_ID].extractor
-        self.assertEqual(english.id, "embeddinggemma")
-        self.assertEqual(turkish.id, "embeddingmagibu")
-        self.assertEqual(turkish.model, "alibayram/embeddingmagibu-200m")
+        magibu = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID]
+        self.assertFalse(magibu.published)
         self.assertEqual(
-            turkish.revision, "27755be9526bab57567896307597e6a6a89c8c39"
+            magibu.output,
+            Path("pipeline-cache/staging/embeddingmagibu-768-tr-v1"),
         )
-        self.assertEqual(english.prompt, turkish.prompt)
-        self.assertEqual(turkish.prompt, "task: sentence similarity | query: ")
+
+    def test_collections_pin_their_models_and_prompts(self) -> None:
+        english = COLLECTIONS[ENGLISH_COLLECTION_ID].extractor
+        magibu = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID].extractor
+        turkish = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID].extractor
+        self.assertEqual(english.id, "embeddinggemma")
+        self.assertEqual(magibu.id, "embeddingmagibu")
+        self.assertEqual(magibu.model, "alibayram/embeddingmagibu-200m")
+        self.assertEqual(
+            magibu.revision, "27755be9526bab57567896307597e6a6a89c8c39"
+        )
+        self.assertEqual(english.prompt, magibu.prompt)
+        self.assertEqual(magibu.prompt, "task: sentence similarity | query: ")
+        self.assertEqual(turkish.id, "word2vec-skipgram")
+        self.assertEqual(turkish.prompt, "")
         self.assertFalse(english.trust_remote_code)
         self.assertFalse(turkish.trust_remote_code)
 
     def test_cache_metadata_uses_the_collection_extractor(self) -> None:
-        collection = COLLECTIONS[TURKISH_COLLECTION_ID]
+        collection = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID]
         metadata = expected_cache_metadata("vocabulary", collection, "test-version")
         self.assertEqual(metadata["model"], "alibayram/embeddingmagibu-200m")
         self.assertEqual(metadata["revision"], collection.extractor.revision)

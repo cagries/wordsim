@@ -9,11 +9,11 @@ afterEach(() => {
 });
 
 const summary: CollectionSummary = {
-  id: "embeddingmagibu-768-tr-v1",
+  id: "word2vec-skipgram-300-tr-v1",
   language: "tr",
   label: "Türkçe",
   shortLabel: "TR",
-  file: "collections/embeddingmagibu-768-tr-v1/collection.json",
+  file: "collections/word2vec-skipgram-300-tr-v1/collection.json",
 };
 
 describe("data loading", () => {
@@ -36,12 +36,19 @@ describe("data loading", () => {
           id: summary.id,
           language: "tr",
           extractor: {
-            id: "embeddingmagibu",
-            model: "alibayram/embeddingmagibu-200m",
-            revision: "revision",
-            prompt: "task: sentence similarity | query: ",
-            dimensions: 768,
+            id: "word2vec-skipgram",
+            kind: "word2vec-binary",
+            model: "Turkish-Word-Embeddings/Word-Embeddings-Repository-for-Turkish",
+            revision: "v1.0.0",
+            prompt: "",
+            dimensions: 300,
             trustRemoteCode: false,
+            artifact: {
+              release: "v1.0.0",
+              archive: "word2vec_10ep-300emb.zip",
+              member: "word2vec_10ep-300emb.bin",
+            },
+            artifactSha256: "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f",
           },
           vocabularyFile: "vocabulary.json",
           puzzles: [{ id: "one", label: "Bulmaca 1", file: "puzzles/one.json" }],
@@ -54,7 +61,7 @@ describe("data loading", () => {
           version: "abc",
           language: "tr",
           normalization: "tr-modern-lower-nfc-v1",
-          vocabularyPolicy: "zeyrek-tr-reviewed-v1",
+          vocabularyPolicy: "zeyrek-tr-reviewed-word2vec-covered-v1",
           keyEncoding: "plain",
           keys: ["sözcük"],
         }),
@@ -68,10 +75,10 @@ describe("data loading", () => {
 
     const result = await loadCollection("/base/data/", summary);
     assert.deepEqual(result.vocabulary.keys, ["sözcük"]);
-    assert.equal(result.collectionRoot, "/base/data/collections/embeddingmagibu-768-tr-v1");
+    assert.equal(result.collectionRoot, "/base/data/collections/word2vec-skipgram-300-tr-v1");
     assert.deepEqual(requested, [
-      "/base/data/collections/embeddingmagibu-768-tr-v1/collection.json",
-      "/base/data/collections/embeddingmagibu-768-tr-v1/vocabulary.json",
+      "/base/data/collections/word2vec-skipgram-300-tr-v1/collection.json",
+      "/base/data/collections/word2vec-skipgram-300-tr-v1/vocabulary.json",
     ]);
   });
 
@@ -91,10 +98,39 @@ describe("data loading", () => {
         id: summary.id,
         language: summary.language,
         extractor: {
-          id: "embeddingmagibu",
-          prompt: "task: sentence similarity | query: ",
-          dimensions: 768,
+          id: "word2vec-skipgram",
+          kind: "word2vec-binary",
+          prompt: "",
+          dimensions: 300,
           trustRemoteCode: true,
+        },
+        puzzles: [{}],
+      }),
+    }) as Response);
+    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
+  });
+
+  it("rejects a Turkish Word2Vec manifest with the wrong artifact identity", async () => {
+    mock.method(globalThis, "fetch", async () => ({
+      ok: true,
+      json: async () => ({
+        schemaVersion: 2,
+        id: summary.id,
+        language: summary.language,
+        extractor: {
+          id: "word2vec-skipgram",
+          kind: "word2vec-binary",
+          model: "Turkish-Word-Embeddings/Word-Embeddings-Repository-for-Turkish",
+          revision: "v1.0.0",
+          prompt: "",
+          dimensions: 300,
+          trustRemoteCode: false,
+          artifact: {
+            release: "v1.0.0",
+            archive: "word2vec_10ep-300emb.zip",
+            member: "word2vec_10ep-300emb.bin",
+          },
+          artifactSha256: "wrong",
         },
         puzzles: [{}],
       }),

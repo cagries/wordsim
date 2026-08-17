@@ -70,17 +70,27 @@ describe("standalone package", () => {
       assert.equal(manifest.language, collection.language);
       assert.equal(
         manifest.extractor.id,
-        collection.language === "tr" ? "embeddingmagibu" : "embeddinggemma",
+        collection.language === "tr" ? "word2vec-skipgram" : "embeddinggemma",
       );
       assert.equal(manifest.extractor.trustRemoteCode, false);
-      assert.equal(manifest.extractor.prompt, "task: sentence similarity | query: ");
+      assert.equal(
+        manifest.extractor.prompt,
+        collection.language === "tr" ? "" : "task: sentence similarity | query: ",
+      );
       assert.equal(vocabulary.language, collection.language);
       const expectedPolicy = collection.language === "tr"
-        ? "zeyrek-tr-reviewed-v1"
+        ? "zeyrek-tr-reviewed-word2vec-covered-v1"
         : "wordfreq-surface-v1";
       assert.equal(vocabulary.vocabularyPolicy, expectedPolicy);
-      assert.equal(vocabulary.keys.length, collection.language === "tr" ? 12_812 : 30_000);
+      assert.equal(vocabulary.keys.length, collection.language === "tr" ? 12_478 : 30_000);
       if (collection.language === "tr") {
+        assert.equal(manifest.extractor.dimensions, 300);
+        assert.equal(manifest.extractor.id, "word2vec-skipgram");
+        assert.equal(manifest.extractor.kind, "word2vec-binary");
+        assert.equal(
+          manifest.extractor.artifactSha256,
+          "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f",
+        );
         const words = new Set(vocabulary.keys);
         for (const word of [
           "at", "atmak", "yat", "yatmak", "yar", "yarmak", "kaçırmak",
@@ -108,5 +118,19 @@ describe("standalone package", () => {
         assert.equal(data.scores[data.topIndices[0]], 10_000);
       }
     }
+
+    const turkish = catalog.collections.find((collection) => collection.language === "tr");
+    assert.ok(turkish);
+    const turkishRoot = path.dirname(path.join(packageRoot, "data", turkish.file));
+    const vocabulary = JSON.parse(
+      readFileSync(path.join(turkishRoot, "vocabulary.json"), "utf8"),
+    ) as VocabularyData;
+    const sincap = JSON.parse(
+      readFileSync(path.join(turkishRoot, "puzzles/1.json"), "utf8"),
+    ) as PuzzleData;
+    const neighbors = sincap.topIndices.slice(0, 20).map((index) => vocabulary.keys[index]);
+    assert.ok(neighbors.includes("tilki"));
+    assert.ok(neighbors.includes("tavşan"));
+    assert.equal(neighbors.includes("sin"), false);
   });
 });

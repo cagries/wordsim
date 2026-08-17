@@ -58,7 +58,7 @@ describe("Turkish GameSession", () => {
     version: "tr-version",
     language: "tr",
     normalization: "tr-modern-lower-nfc-v1",
-    vocabularyPolicy: "zeyrek-tr-reviewed-v1",
+    vocabularyPolicy: "zeyrek-tr-reviewed-word2vec-covered-v1",
     keyEncoding: "plain",
     keys: ["ışık", "kar"],
   };
