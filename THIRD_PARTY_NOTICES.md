@@ -6,6 +6,18 @@ Puzzle scores are generated with `google/embeddinggemma-300m`, created by Google
 
 The repository does not redistribute the model weights. Generated score tables are outputs of the model.
 
+## EmbeddingMagibu
+
+Turkish puzzle scores are generated with [`alibayram/embeddingmagibu-200m`](https://huggingface.co/alibayram/embeddingmagibu-200m), developed by M. Ali Bayram, Banu Diri, and Savaş Yıldırım. The model is distributed under the MIT License and is described in “Adapting Multilingual Embedding Models to Turkish via Cross-Lingual Tokenizer Surgery and Offline Distillation.”
+
+The repository does not redistribute the model weights. Generated score tables are outputs of the model.
+
+## Turkish Word2Vec trial
+
+The offline candidate collection can use the 300-dimensional Word2Vec vectors released by Karahan Sarıtaş, Cahid Arda Öz, and Tunga Güngör with [“A Comprehensive Analysis of Static Word Embeddings for Turkish”](https://doi.org/10.1016/j.eswa.2024.124123). The accompanying [repository and release](https://github.com/Turkish-Word-Embeddings/Word-Embeddings-Repository-for-Turkish/releases/tag/v1.0.0) request citation of the work and its source corpora.
+
+The repository code carries an MIT license, but the release does not state separate terms for the model artifacts. For that reason, wordsim downloads the archive only into ignored local cache storage and does not redistribute the archive, extracted vectors, or trial score tables. Licensing should be clarified before publishing outputs from this candidate.
+
 ## wordfreq
 
 The accepted-word vocabulary is derived from `wordfreq` by Robyn Speer:
@@ -16,8 +28,8 @@ The `wordfreq` code is Apache-2.0 licensed. Its data includes material available
 
 The generated vocabulary data should be redistributed with this notice intact.
 
-## Stanza
+## Zeyrek
 
-The Turkish vocabulary is morphologically analyzed with [Stanza](https://stanfordnlp.github.io/stanza/), developed by the Stanford NLP Group, and its Turkish IMST models. Stanza is distributed under the Apache License 2.0. Model and training-data licenses are documented in the [Stanza model documentation](https://stanfordnlp.github.io/stanza/available_models.html).
+The Turkish vocabulary is morphologically analyzed with [Zeyrek](https://github.com/obulat/zeyrek), a partial Python port of Zemberek by Olga Bulat. Zeyrek is distributed under the MIT License and includes default text dictionaries derived from [Zemberek-NLP](https://github.com/ahmetaa/zemberek-nlp), which is distributed under the Apache License 2.0.
 
-The repository does not redistribute Stanza model files. The generated Turkish vocabulary is an output of the preprocessing pipeline.
+The repository does not redistribute the analyzer package itself. The generated Turkish vocabulary is an output of the preprocessing pipeline.

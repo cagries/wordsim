@@ -59,10 +59,15 @@ export async function loadCollection(
   const manifestUrl = resolveDataUrl(root, summary.file);
   const collectionRoot = parentUrl(manifestUrl);
   const manifest = await fetchJson<CollectionManifest>(manifestUrl);
+  const expectedExtractor = summary.language === "tr" ? "embeddingmagibu" : "embeddinggemma";
   if (
     manifest.schemaVersion !== 2 ||
     manifest.id !== summary.id ||
     manifest.language !== summary.language ||
+    manifest.extractor?.id !== expectedExtractor ||
+    manifest.extractor.dimensions !== 768 ||
+    manifest.extractor.prompt !== "task: sentence similarity | query: " ||
+    manifest.extractor.trustRemoteCode !== false ||
     manifest.puzzles.length === 0
   ) {
     throw new Error("The puzzle collection is invalid or empty.");
@@ -79,7 +84,7 @@ export async function loadCollection(
       vocabulary.language === "tr" ? "tr-modern-lower-nfc-v1" : "en-lower-nfc-v1"
     ) ||
     vocabulary.vocabularyPolicy !== (
-      vocabulary.language === "tr" ? "stanza-tr-guarded-v1" : "wordfreq-surface-v1"
+      vocabulary.language === "tr" ? "zeyrek-tr-reviewed-v1" : "wordfreq-surface-v1"
     ) ||
     vocabulary.version.length === 0
   ) {

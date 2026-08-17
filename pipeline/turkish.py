@@ -1,105 +1,160 @@
 from __future__ import annotations
 
-from collections import Counter
+import json
+import logging
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
-from pipeline.core import is_valid_word, normalize_word
+from pipeline.core import is_valid_word, normalize_word, write_json
 
 
-FRONT_VOWELS = frozenset("eiöü")
-BACK_VOWELS = frozenset("aıou")
+INFLECTIONAL_MORPHEMES = frozenset(
+    {
+        "A3pl", "Acc", "Dat", "Loc", "Abl", "Gen", "Ins", "Equ",
+        "P1sg", "P2sg", "P3sg", "P1pl", "P2pl", "P3pl",
+    }
+)
+INVARIANT_POS = frozenset(
+    {"Adv", "Pron", "Postp", "Conj", "Det", "Interj", "Num"}
+)
+
+
+@dataclass(frozen=True)
+class LexicalAnalysis:
+    lemma: str
+    primary_pos: str
+    secondary_pos: str
+    final_pos: str
+    morphemes: frozenset[str]
+
+
+@dataclass(frozen=True)
+class TurkishOverrides:
+    allow: frozenset[str]
+    reject: frozenset[str]
 
 
 @dataclass(frozen=True)
 class TurkishVocabularyResult:
     words: list[str]
     candidate_count: int
-    tags: Counter[str]
+    analyses: Counter[str]
     drops: Counter[str]
-    changed_verbs: int
+    suspect_count: int
 
 
-def parse_features(value: str | None) -> dict[str, str]:
-    if not value:
-        return {}
-    result: dict[str, str] = {}
-    for feature in value.split("|"):
-        key, separator, item = feature.partition("=")
-        if separator and key and item:
-            result[key] = item
+def _validated_override_words(value: object, field: str) -> frozenset[str]:
+    if not isinstance(value, list) or not all(isinstance(word, str) for word in value):
+        raise ValueError(f"Turkish override '{field}' must be an array of strings.")
+    if len(value) != len(set(value)):
+        raise ValueError(f"Turkish override '{field}' contains duplicates.")
+    for word in value:
+        if normalize_word(word, "tr") != word or not is_valid_word(word, "tr"):
+            raise ValueError(
+                f"Turkish override '{field}' contains a non-normalized word: {word!r}."
+            )
+    return frozenset(value)
+
+
+def load_turkish_overrides(path: Path) -> TurkishOverrides:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict) or value.get("schemaVersion") != 1:
+        raise ValueError("Turkish overrides must use schemaVersion 1.")
+    if set(value) != {"schemaVersion", "allow", "reject"}:
+        raise ValueError("Turkish overrides contain unsupported fields.")
+    allow = _validated_override_words(value.get("allow"), "allow")
+    reject = _validated_override_words(value.get("reject"), "reject")
+    overlap = allow & reject
+    if overlap:
+        raise ValueError(
+            f"Turkish overrides contradict each other: {', '.join(sorted(overlap))}."
+        )
+    return TurkishOverrides(allow=allow, reject=reject)
+
+
+def select_analysis_outputs(
+    surface: str,
+    analyses: Sequence[LexicalAnalysis],
+    *,
+    allow_surface: bool = False,
+) -> list[str]:
+    """Select conservative dictionary forms from every possible Zeyrek reading."""
+    word = normalize_word(surface, "tr")
+    surface_outputs: list[str] = [word] if allow_surface else []
+    verb_outputs: list[str] = []
+
+    for analysis in analyses:
+        if analysis.secondary_pos in {"Prop", "Abbrv"}:
+            continue
+        if analysis.primary_pos == "Verb":
+            lemma = normalize_word(analysis.lemma, "tr")
+            if lemma.endswith(("mak", "mek")) and is_valid_word(lemma, "tr"):
+                verb_outputs.append(lemma)
+            continue
+        if analysis.final_pos in {"Noun", "Adj"}:
+            if not (analysis.morphemes & INFLECTIONAL_MORPHEMES):
+                surface_outputs.append(word)
+            continue
+        if analysis.final_pos in INVARIANT_POS:
+            lemma = normalize_word(analysis.lemma, "tr")
+            if lemma == word:
+                surface_outputs.append(word)
+
+    result: list[str] = []
+    seen: set[str] = set()
+    for output in (*surface_outputs, *verb_outputs):
+        if output not in seen and is_valid_word(output, "tr"):
+            seen.add(output)
+            result.append(output)
     return result
 
 
-def turkish_infinitive(lemma: str) -> str | None:
-    stem = normalize_word(lemma, "tr")
-    for character in reversed(stem):
-        if character in FRONT_VOWELS:
-            return f"{stem}mek"
-        if character in BACK_VOWELS:
-            return f"{stem}mak"
-    return None
+def _is_cross_language_suspect(word: str) -> tuple[bool, float, float]:
+    from wordfreq import zipf_frequency
+
+    english = zipf_frequency(word, "en")
+    turkish = zipf_frequency(word, "tr")
+    suspect = len(word) >= 3 and english >= 4.0 and english - turkish >= 1.5
+    return suspect, english, turkish
 
 
-def canonicalize_analysis(
-    surface: str,
-    lemma: str | None,
-    upos: str | None,
-    feature_string: str | None,
-) -> tuple[str | None, str]:
-    """Apply the deliberately conservative Turkish vocabulary policy."""
-    word = normalize_word(surface, "tr")
-    tag = upos or "X"
-    features = parse_features(feature_string)
-    has_possessive = any("psor" in key.lower() for key in features)
-
-    if tag in {"PROPN", "X"}:
-        return None, tag.lower()
-    if tag == "VERB":
-        infinitive = turkish_infinitive(lemma or word)
-        if infinitive is None:
-            return None, "verb-no-vowel"
-        result = infinitive
-    elif tag == "NOUN":
-        if (
-            features.get("Case") not in {None, "Nom"}
-            or features.get("Number") not in {None, "Sing"}
-            or has_possessive
-        ):
-            return None, "inflected-noun"
-        result = word
-    elif tag == "ADJ":
-        if (
-            features.get("Case") not in {None, "Nom"}
-            or features.get("Number") == "Plur"
-            or has_possessive
-        ):
-            return None, "inflected-adjective"
-        result = word
-    else:
-        result = word
-
-    result = normalize_word(result, "tr")
-    if not is_valid_word(result, "tr"):
-        return None, "invalid-output"
-    return result, "kept"
-
-
-def build_stanza_vocabulary(
-    candidates: Iterable[str],
-    max_size: int,
-    model_dir: Path,
-    *,
-    analysis_batch_size: int = 2_000,
-) -> TurkishVocabularyResult:
-    """Analyze normalized wordfreq entries as independent, pre-tokenized words."""
+def _zeyrek_analyzer():
     try:
-        import stanza
+        from zeyrek.lexicon import RootLexicon
+        from zeyrek.morphotactics import TurkishMorphotactics
+        from zeyrek.rulebasedanalyzer import RuleBasedAnalyzer
     except ImportError as error:
         raise RuntimeError(
-            "Turkish vocabulary generation requires Stanza; install the pipeline dependencies."
+            "Turkish vocabulary generation requires Zeyrek; install the pipeline dependencies."
         ) from error
+
+    logging.getLogger("zeyrek.rulebasedanalyzer").setLevel(logging.ERROR)
+    lexicon = RootLexicon.default_text_dictionaries()
+    return RuleBasedAnalyzer(TurkishMorphotactics(lexicon))
+
+
+def _convert_analysis(analysis: object) -> LexicalAnalysis:
+    dictionary_item = analysis.dict_item
+    return LexicalAnalysis(
+        lemma=dictionary_item.lemma,
+        primary_pos=dictionary_item.primary_pos.value or "None",
+        secondary_pos=dictionary_item.secondary_pos.value or "None",
+        final_pos=analysis.pos.value or "None",
+        morphemes=frozenset(morpheme.id_ for morpheme, _ in analysis.morphemes),
+    )
+
+
+def build_zeyrek_vocabulary(
+    candidates: Iterable[str],
+    max_size: int,
+    overrides_path: Path,
+    audit_path: Path,
+) -> TurkishVocabularyResult:
+    """Build an audited Turkish vocabulary from rule-based lexical analyses."""
+    overrides = load_turkish_overrides(overrides_path)
+    analyzer = _zeyrek_analyzer()
 
     normalized: list[str] = []
     raw_seen: set[str] = set()
@@ -110,66 +165,99 @@ def build_stanza_vocabulary(
         raw_seen.add(word)
         normalized.append(word)
 
-    processors = "tokenize,pos,lemma"
-    packages = {
-        "tokenize": "imst",
-        "pos": "imst_charlm",
-        "lemma": "imst_nocharlm",
-    }
-    stanza.download(
-        "tr",
-        model_dir=str(model_dir),
-        processors=processors,
-        package=packages,
-        verbose=False,
-    )
-    nlp = stanza.Pipeline(
-        "tr",
-        model_dir=str(model_dir),
-        processors=processors,
-        package=packages,
-        tokenize_pretokenized=True,
-        use_gpu=False,
-        download_method=None,
-        verbose=False,
-    )
+    unknown_overrides = (overrides.allow | overrides.reject) - raw_seen
+    if unknown_overrides:
+        raise ValueError(
+            "Turkish overrides are absent from the wordfreq candidates: "
+            + ", ".join(sorted(unknown_overrides))
+        )
 
-    words: list[str] = []
-    output_seen: set[str] = set()
-    tags: Counter[str] = Counter()
+    analyses_counter: Counter[str] = Counter()
     drops: Counter[str] = Counter()
-    changed_verbs = 0
-    for start in range(0, len(normalized), analysis_batch_size):
-        batch = normalized[start : start + analysis_batch_size]
-        document = nlp([[word] for word in batch])
-        if len(document.sentences) != len(batch):
-            raise RuntimeError("Stanza returned an unexpected number of Turkish analyses.")
-        for source, sentence in zip(batch, document.sentences, strict=True):
-            if len(sentence.words) != 1:
-                drops["tokenization"] += 1
-                continue
-            analysis = sentence.words[0]
-            tag = analysis.upos or "X"
-            tags[tag] += 1
-            output, reason = canonicalize_analysis(
-                source, analysis.lemma, analysis.upos, analysis.feats
+    output_sources: defaultdict[str, list[str]] = defaultdict(list)
+    proposed: list[str] = []
+    proposed_seen: set[str] = set()
+    for source in normalized:
+        analyses = [_convert_analysis(item) for item in analyzer.analyze(source)]
+        if not analyses:
+            analyses_counter["unknown"] += 1
+        for analysis in analyses:
+            key = "/".join(
+                (analysis.primary_pos, analysis.secondary_pos, analysis.final_pos)
             )
-            if output is None:
-                drops[reason] += 1
-                continue
-            if tag == "VERB" and output != source:
-                changed_verbs += 1
-            if output in output_seen:
+            analyses_counter[key] += 1
+        outputs = select_analysis_outputs(
+            source, analyses, allow_surface=source in overrides.allow
+        )
+        if not outputs:
+            drops["no-approved-analysis"] += 1
+        for output in outputs:
+            output_sources[output].append(source)
+            if output in proposed_seen:
                 drops["duplicate-output"] += 1
                 continue
-            output_seen.add(output)
-            if len(words) < max_size:
-                words.append(output)
+            proposed_seen.add(output)
+            proposed.append(output)
+
+    words: list[str] = []
+    suspects: list[dict[str, object]] = []
+    unresolved: list[str] = []
+    for word in proposed:
+        suspect, english_zipf, turkish_zipf = _is_cross_language_suspect(word)
+        decision = "not-suspect"
+        if word in overrides.reject:
+            decision = "reject"
+            drops["reviewed-reject"] += 1
+        elif suspect and word in overrides.allow:
+            decision = "allow"
+        elif suspect:
+            decision = "unresolved"
+            unresolved.append(word)
+            drops["unresolved-suspect"] += 1
+        if suspect:
+            suspects.append(
+                {
+                    "word": word,
+                    "englishZipf": english_zipf,
+                    "turkishZipf": turkish_zipf,
+                    "decision": decision,
+                }
+            )
+        if decision not in {"reject", "unresolved"} and len(words) < max_size:
+            words.append(word)
+        elif decision == "not-suspect" and len(words) >= max_size:
+            drops["size-limit"] += 1
+
+    write_json(
+        audit_path,
+        {
+            "schemaVersion": 1,
+            "vocabularyPolicy": "zeyrek-tr-reviewed-v1",
+            "candidateCount": len(normalized),
+            "proposedCount": len(proposed),
+            "finalCount": len(words),
+            "analysisCounts": dict(analyses_counter.most_common()),
+            "dropCounts": dict(drops.most_common()),
+            "overrides": {
+                "allow": sorted(overrides.allow),
+                "reject": sorted(overrides.reject),
+            },
+            "suspects": suspects,
+            "unresolvedSuspects": unresolved,
+            "provenance": dict(output_sources),
+        },
+    )
+    if unresolved:
+        raise ValueError(
+            "Unreviewed Turkish/English overlap; classify these words in the overrides: "
+            + ", ".join(unresolved)
+            + f". See {audit_path}."
+        )
 
     return TurkishVocabularyResult(
         words=words,
         candidate_count=len(normalized),
-        tags=tags,
+        analyses=analyses_counter,
         drops=drops,
-        changed_verbs=changed_verbs,
+        suspect_count=len(suspects),
     )

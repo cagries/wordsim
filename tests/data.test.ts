@@ -9,11 +9,11 @@ afterEach(() => {
 });
 
 const summary: CollectionSummary = {
-  id: "embeddinggemma-768-tr-v1",
+  id: "embeddingmagibu-768-tr-v1",
   language: "tr",
   label: "Türkçe",
   shortLabel: "TR",
-  file: "collections/embeddinggemma-768-tr-v1/collection.json",
+  file: "collections/embeddingmagibu-768-tr-v1/collection.json",
 };
 
 describe("data loading", () => {
@@ -35,7 +35,14 @@ describe("data loading", () => {
           schemaVersion: 2,
           id: summary.id,
           language: "tr",
-          extractor: {},
+          extractor: {
+            id: "embeddingmagibu",
+            model: "alibayram/embeddingmagibu-200m",
+            revision: "revision",
+            prompt: "task: sentence similarity | query: ",
+            dimensions: 768,
+            trustRemoteCode: false,
+          },
           vocabularyFile: "vocabulary.json",
           puzzles: [{ id: "one", label: "Bulmaca 1", file: "puzzles/one.json" }],
         }),
@@ -47,7 +54,7 @@ describe("data loading", () => {
           version: "abc",
           language: "tr",
           normalization: "tr-modern-lower-nfc-v1",
-          vocabularyPolicy: "stanza-tr-guarded-v1",
+          vocabularyPolicy: "zeyrek-tr-reviewed-v1",
           keyEncoding: "plain",
           keys: ["sözcük"],
         }),
@@ -61,10 +68,10 @@ describe("data loading", () => {
 
     const result = await loadCollection("/base/data/", summary);
     assert.deepEqual(result.vocabulary.keys, ["sözcük"]);
-    assert.equal(result.collectionRoot, "/base/data/collections/embeddinggemma-768-tr-v1");
+    assert.equal(result.collectionRoot, "/base/data/collections/embeddingmagibu-768-tr-v1");
     assert.deepEqual(requested, [
-      "/base/data/collections/embeddinggemma-768-tr-v1/collection.json",
-      "/base/data/collections/embeddinggemma-768-tr-v1/vocabulary.json",
+      "/base/data/collections/embeddingmagibu-768-tr-v1/collection.json",
+      "/base/data/collections/embeddingmagibu-768-tr-v1/vocabulary.json",
     ]);
   });
 
@@ -72,6 +79,25 @@ describe("data loading", () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
       json: async () => ({ schemaVersion: 2, id: "other", language: "tr", puzzles: [{}] }),
+    }) as Response);
+    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
+  });
+
+  it("rejects unsupported or remote-code-enabled extractors", async () => {
+    mock.method(globalThis, "fetch", async () => ({
+      ok: true,
+      json: async () => ({
+        schemaVersion: 2,
+        id: summary.id,
+        language: summary.language,
+        extractor: {
+          id: "embeddingmagibu",
+          prompt: "task: sentence similarity | query: ",
+          dimensions: 768,
+          trustRemoteCode: true,
+        },
+        puzzles: [{}],
+      }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
   });

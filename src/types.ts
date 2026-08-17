@@ -1,14 +1,15 @@
 export interface ExtractorMetadata {
-  id: "embeddinggemma";
+  id: "embeddinggemma" | "embeddingmagibu";
   model: string;
   revision: string;
   prompt: string;
   dimensions: 768;
+  trustRemoteCode: false;
 }
 
 export type LanguageCode = "en" | "tr";
 export type NormalizationStrategy = "en-lower-nfc-v1" | "tr-modern-lower-nfc-v1";
-export type VocabularyPolicy = "wordfreq-surface-v1" | "stanza-tr-guarded-v1";
+export type VocabularyPolicy = "wordfreq-surface-v1" | "zeyrek-tr-reviewed-v1";
 
 export interface CollectionSummary {
   id: string;

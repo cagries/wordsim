@@ -13,7 +13,7 @@ import {
 } from "../src/persistence";
 
 const EN = "embeddinggemma-768-en-v1";
-const TR = "embeddinggemma-768-tr-v1";
+const TR = "embeddingmagibu-768-tr-v1";
 
 class MemoryStorage {
   values = new Map<string, string>();

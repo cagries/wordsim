@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "allow": [
+    "not", "has", "his", "stop", "but", "start", "had", "single",
+    "sure", "put", "fire", "lot", "rest", "moment", "sent", "talk",
+    "marketing", "internet"
+  ],
+  "reject": [
+    "bad", "name", "ask", "per", "run", "step", "main", "oil", "bed",
+    "change", "done", "fuel", "guard", "idea"
+  ]
+}

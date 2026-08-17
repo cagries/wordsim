@@ -68,12 +68,34 @@ describe("standalone package", () => {
       const vocabulary = JSON.parse(readFileSync(vocabularyPath, "utf8")) as VocabularyData;
       assert.equal(manifest.id, collection.id);
       assert.equal(manifest.language, collection.language);
+      assert.equal(
+        manifest.extractor.id,
+        collection.language === "tr" ? "embeddingmagibu" : "embeddinggemma",
+      );
+      assert.equal(manifest.extractor.trustRemoteCode, false);
+      assert.equal(manifest.extractor.prompt, "task: sentence similarity | query: ");
       assert.equal(vocabulary.language, collection.language);
       const expectedPolicy = collection.language === "tr"
-        ? "stanza-tr-guarded-v1"
+        ? "zeyrek-tr-reviewed-v1"
         : "wordfreq-surface-v1";
       assert.equal(vocabulary.vocabularyPolicy, expectedPolicy);
-      assert.equal(vocabulary.keys.length, collection.language === "tr" ? 18_315 : 30_000);
+      assert.equal(vocabulary.keys.length, collection.language === "tr" ? 12_812 : 30_000);
+      if (collection.language === "tr") {
+        const words = new Set(vocabulary.keys);
+        for (const word of [
+          "at", "atmak", "yat", "yatmak", "yar", "yarmak", "kaçırmak",
+          "hızlı", "açık", "internet", "meraklı", "huzurlu", "neşeli",
+          "sarımsaklı", "kaplumbağa", "martı", "pusula", "kayısı", "yayla",
+        ]) {
+          assert.equal(words.has(word), true, `expected Turkish word: ${word}`);
+        }
+        for (const word of [
+          "kaçıramak", "hızlımak", "açik", "run", "running", "the",
+          "evler", "evim", "evdeki",
+        ]) {
+          assert.equal(words.has(word), false, `unexpected Turkish word: ${word}`);
+        }
+      }
       assert.equal(manifest.puzzles.length, 50);
       for (const puzzle of manifest.puzzles) {
         const puzzlePath = path.join(collectionRoot, puzzle.file);
