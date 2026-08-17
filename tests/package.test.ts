@@ -12,6 +12,7 @@ import type {
 
 const packageRoot = path.join(process.cwd(), "wordsim");
 const indexHtml = readFileSync(path.join(packageRoot, "index.html"), "utf8");
+const sourceStyles = readFileSync(path.join(process.cwd(), "src/styles.css"), "utf8");
 const packageMetadata = JSON.parse(
   readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
 ) as { version: string };
@@ -22,6 +23,12 @@ describe("standalone package", () => {
     assert.match(indexHtml, /src="\.\/app\.js"/);
     assert.match(indexHtml, /data-data-root="\.\/data"/);
     assert.match(indexHtml, /class="home-link" href="\.\.\/"/);
+  });
+
+  it("uses the temperature scale for the linked heading", () => {
+    assert.match(sourceStyles, /--heading-temperature-gradient:\s*linear-gradient/);
+    assert.match(sourceStyles, /\.home-link[\s\S]*?background-image:\s*var\(--heading-temperature-gradient\)/);
+    assert.match(sourceStyles, /@media \(forced-colors: active\)[\s\S]*?-webkit-text-fill-color:\s*currentColor/);
   });
 
   it("does not depend on Jekyll processing", () => {

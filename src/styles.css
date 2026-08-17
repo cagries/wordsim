@@ -4,6 +4,17 @@
   background: #f6f3eb;
   color: #20211f;
   font-synthesis: none;
+  --heading-temperature-gradient: linear-gradient(
+    90deg,
+    #174a7e 0%,
+    #2f75a8 15%,
+    #337c98 30%,
+    #686962 43%,
+    #735d00 58%,
+    #8a470f 72%,
+    #b53a31 86%,
+    #8f1f2d 100%
+  );
 }
 
 * { box-sizing: border-box; }
@@ -46,6 +57,22 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .game-header h1 { margin: 0; }
 .game-header p { color: #62645f; }
 .home-link { font-size: 1.8rem; text-decoration: none; }
+.home-link:hover {
+  text-decoration: underline;
+  text-decoration-color: #62645f;
+  text-underline-offset: 0.15em;
+}
+.home-link:focus-visible { outline: 3px solid #176b50; outline-offset: 3px; }
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .home-link {
+    background-image: var(--heading-temperature-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
 .language-select {
   min-width: 7rem;
   padding: 0.55rem 0.7rem;
@@ -242,10 +269,28 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
 .answer-badge { background: #e5b9a3; color: #612b17; }
 
 @media (prefers-color-scheme: dark) {
-  :root { background: #171916; color: #eff1ea; }
+  :root {
+    background: #171916;
+    color: #eff1ea;
+    --heading-temperature-gradient: linear-gradient(
+      90deg,
+      #74b9ec 0%,
+      #8cc9e4 30%,
+      #e1e2dc 43%,
+      #f3d969 58%,
+      #f1a15a 72%,
+      #ef6a5e 86%,
+      #ee5266 100%
+    );
+  }
   button, input, select, table { background: #242722; border-color: #555a51; }
   .game-header p, .status, .history-heading span { color: #afb5a8; }
   .landing a, .home-link { color: #71d3ad; }
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    .home-link { color: transparent; }
+  }
+  .home-link:hover { text-decoration-color: #afb5a8; }
+  .home-link:focus-visible { outline-color: #71d3ad; }
   .language-select { border-color: #71d3ad; color: #71d3ad; }
   .language-select:focus-visible { outline-color: #71d3ad; }
   .how-to-play summary { background: #242722; border-color: #555a51; }
@@ -323,6 +368,14 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
     --temperature-border: #cf5967;
     --temperature-pill-text: #fff5f6;
     --temperature-soft-text: #ffd4da;
+  }
+}
+
+@media (forced-colors: active) {
+  .home-link {
+    background-image: none;
+    color: LinkText;
+    -webkit-text-fill-color: currentColor;
   }
 }
 

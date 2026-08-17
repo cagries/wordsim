@@ -11,6 +11,7 @@ Notable user-facing changes to wordsim are recorded here.
 - Moved live game feedback beside the guess input and added the guessed word, similarity, and rank so results remain visible on mobile keyboards.
 - Added blue-to-red temperature indicators to make proximity ranks easier to scan.
 - Removed numeric similarity scores from the game UI so rank remains the single proximity measure.
+- Applied the blue-to-red temperature scale to the wordsim heading.
 
 ## [1.1.0] - 2026-08-17
 
