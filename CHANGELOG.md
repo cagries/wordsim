@@ -4,6 +4,13 @@ Notable user-facing changes to wordsim are recorded here.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-17
+
+### Changed
+
+- Moved live game feedback beside the guess input and added the guessed word, similarity, and rank so results remain visible on mobile keyboards.
+- Added blue-to-red temperature indicators to make proximity ranks easier to scan.
+
 ## [1.1.0] - 2026-08-17
 
 ### Added

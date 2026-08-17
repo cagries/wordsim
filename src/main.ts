@@ -17,6 +17,8 @@ import {
   saveProgress,
   saveSelectedCollection,
 } from "./persistence";
+import { temperatureForRank } from "./temperature";
+import type { TemperatureBand } from "./temperature";
 import type {
   CollectionCatalog,
   CollectionSummary,
@@ -158,10 +160,13 @@ function populateLanguageSelect(loadedCatalog: CollectionCatalog): void {
 
 function setStatus(
   message: string,
-  kind: "normal" | "error" | "success" | "revealed" = "normal",
+  kind: "normal" | "result" | "error" | "success" | "revealed" = "normal",
+  temperature?: TemperatureBand,
 ): void {
   status.textContent = message;
   status.dataset.kind = kind;
+  if (temperature) status.dataset.temperature = temperature;
+  else status.removeAttribute("data-temperature");
 }
 
 function setGuessingEnabled(enabled: boolean): void {
@@ -269,7 +274,12 @@ function renderResults(results: readonly GuessResult[]): void {
       wordCell.append(badge);
     }
     row.insertCell().textContent = formatScore(result.score);
-    row.insertCell().textContent = result.rank === null ? messages.cold : `#${result.rank}`;
+    const rankCell = row.insertCell();
+    const temperature = document.createElement("span");
+    temperature.className = "temperature-pill";
+    temperature.dataset.temperature = temperatureForRank(result.rank);
+    temperature.textContent = result.rank === null ? messages.cold : `#${result.rank}`;
+    rankCell.append(temperature);
   }
 }
 
@@ -315,7 +325,7 @@ function activateSession(puzzle: PuzzleSummary, loadedSession: GameSession): voi
   updateHintControls();
   if (session.solved) {
     const answer = session.getResults().find((result) => result.solved)?.word ?? "";
-    setStatus(messages.solvedStatus(answer), "success");
+    setStatus(messages.solvedStatus(answer), "success", temperatureForRank(1));
     setGuessingEnabled(false);
   } else if (session.gaveUp) {
     const answer = session.getResults().find((result) => result.source === "answer")?.word ?? "";
@@ -499,10 +509,17 @@ form.addEventListener("submit", (event) => {
     updateHintControls();
     input.value = "";
     if (result.solved) {
-      setStatus(messages.solvedStatus(result.word), "success");
+      setStatus(messages.solvedStatus(result.word), "success", temperatureForRank(1));
       setGuessingEnabled(false);
     } else {
-      setStatus(result.rank === null ? messages.coldStatus : messages.rankedStatus(result.rank));
+      const score = formatScore(result.score);
+      setStatus(
+        result.rank === null
+          ? messages.coldStatus(result.word, score)
+          : messages.rankedStatus(result.word, score, result.rank),
+        "result",
+        temperatureForRank(result.rank),
+      );
       input.focus();
     }
   } catch (error) {
@@ -540,11 +557,12 @@ wordHintButton.addEventListener("click", () => {
     renderPuzzleGrid();
     renderResults(session.getResults());
     updateHintControls();
+    const hintRank = result.rank ?? CLOSEST_HINT_RANK;
     setStatus(messages.hintStatus(
       result.word,
-      result.rank ?? CLOSEST_HINT_RANK,
+      hintRank,
       result.rank === CLOSEST_HINT_RANK,
-    ));
+    ), "result", temperatureForRank(hintRank));
     input.focus();
   } catch {
     setStatus(messages.hintFallbackError, "error");

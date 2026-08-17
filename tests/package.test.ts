@@ -52,6 +52,14 @@ describe("standalone package", () => {
     }
   });
 
+  it("places live feedback between the guess row and assistance controls", () => {
+    assert.match(
+      indexHtml,
+      /class="guess-row"[\s\S]*?id="status"[^>]*role="status"[^>]*aria-live="polite"[\s\S]*?id="assistance-controls"/,
+    );
+    assert.equal(indexHtml.match(/id="status"/g)?.length, 1);
+  });
+
   it("includes a collapsed, localizable footer disclosure", () => {
     assert.match(indexHtml, /<footer class="game-footer">/);
     assert.match(indexHtml, /<details class="about">\s*<summary>/);
@@ -69,7 +77,7 @@ describe("standalone package", () => {
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.1.0");
+    assert.equal(packageMetadata.version, "1.1.1");
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });

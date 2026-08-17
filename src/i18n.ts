@@ -54,8 +54,8 @@ export interface Translations {
   progressRestored: string;
   solvedStatus: (word: string) => string;
   gaveUpStatus: (word: string) => string;
-  coldStatus: string;
-  rankedStatus: (rank: number) => string;
+  coldStatus: (word: string, score: string) => string;
+  rankedStatus: (word: string, score: string, rank: number) => string;
   resetStatus: string;
   noHintsStatus: string;
   hintStatus: (word: string, rank: number, closest: boolean) => string;
@@ -82,7 +82,7 @@ const english: Translations = {
   howSimilarityLabel: "Similarity:",
   howSimilarityText: "Higher scores mean the words are closer in meaning, with 100 being the maximum.",
   howRankingLabel: "Ranking:",
-  howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words.",
+  howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).",
   howHintsLabel: "Hints:",
   howHintsText: "Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.",
   howFormsLabel: "",
@@ -125,10 +125,10 @@ const english: Translations = {
   loadingPuzzle: (number) => `Loading Puzzle ${number}…`,
   tryWord: "Try any common English word.",
   progressRestored: "Progress restored. Keep guessing.",
-  solvedStatus: (word) => `Solved! The word was “${word}”.`,
+  solvedStatus: (word) => `Solved! “${word}” · 100.00 · #1`,
   gaveUpStatus: (word) => `You gave up. The word was “${word}”.`,
-  coldStatus: "That guess is cold.",
-  rankedStatus: (rank) => `That guess is ranked #${rank}.`,
+  coldStatus: (word, score) => `“${word}” · ${score} · cold`,
+  rankedStatus: (word, score, rank) => `“${word}” · ${score} · #${rank}`,
   resetStatus: "Puzzle reset. Try any common English word.",
   noHintsStatus: "No safer word hints remain.",
   hintStatus: (word, rank, closest) => `Hint: “${word}” is ranked #${rank}.${closest ? " This is the closest available hint." : ""}`,
@@ -163,7 +163,7 @@ const turkish: Translations = {
   howSimilarityLabel: "Benzerlik:",
   howSimilarityText: "Tahminin puanı gizli kelimeye olan benzerliği gösteriyor. En yüksek puan 100.",
   howRankingLabel: "Sıralama:",
-  howRankingText: "Daha düşük sıralama, o kelime daha yakın anlamına geliyor. #1 gizli kelime, “uzak” tahmin ise en yakın 1000 kelimenin dışında.",
+  howRankingText: "Daha düşük sıralama, o kelime daha yakın anlamına geliyor. #1 gizli kelime, “uzak” tahmin ise en yakın 1000 kelimenin dışında. Renkler uzaktaki mavi tonlardan yakındaki kırmızı tonlara ilerler.",
   howHintsLabel: "İpuçları:",
   howHintsText: "Kelime ipuçları gizli kelimeye yakın kelimeler gösterir. Kategori ipucu 5 geçerli tahminden sonra açılır.",
   howFormsLabel: "Kelime biçimleri:",
@@ -206,10 +206,10 @@ const turkish: Translations = {
   loadingPuzzle: (number) => `${number}. bulmaca yükleniyor…`,
   tryWord: "Yaygın bir Türkçe kelime dene.",
   progressRestored: "İlerlemen geri yüklendi. Tahmine devam et.",
-  solvedStatus: (word) => `Çözdün! Kelime “${word}” idi.`,
+  solvedStatus: (word) => `Çözdün! “${word}” · 100.00 · #1`,
   gaveUpStatus: (word) => `Vazgeçtin. Kelime “${word}” idi.`,
-  coldStatus: "Bu tahmin uzak.",
-  rankedStatus: (rank) => `Bu tahminin sırası #${rank}.`,
+  coldStatus: (word, score) => `“${word}” · ${score} · uzak`,
+  rankedStatus: (word, score, rank) => `“${word}” · ${score} · #${rank}`,
   resetStatus: "Bulmaca sıfırlandı. Yaygın bir Türkçe kelime dene.",
   noHintsStatus: "Gösterilebilecek daha yakın kelime ipucu kalmadı.",
   hintStatus: (word, rank, closest) => `İpucu: “${word}” #${rank} sırada.${closest ? " Bu, kullanılabilir en yakın ipucu." : ""}`,

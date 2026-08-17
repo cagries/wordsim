@@ -130,10 +130,80 @@ button:hover:not(:disabled) { border-color: #176b50; }
 }
 .category-clue[hidden] { display: none; }
 
-.status { min-height: 1.5rem; color: #62645f; }
+.status {
+  min-height: 1.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  color: #62645f;
+}
+.status[data-kind="result"] { font-weight: 650; font-variant-numeric: tabular-nums; }
 .status[data-kind="error"] { color: #a02828; }
 .status[data-kind="success"] { color: #176b50; font-weight: 700; }
 .status[data-kind="revealed"] { color: #853c20; font-weight: 700; }
+.status[data-temperature] {
+  border-color: var(--temperature-border);
+  background: var(--temperature-soft);
+  color: var(--temperature-soft-text);
+}
+
+[data-temperature="cold"] {
+  --temperature-strong: #174a7e;
+  --temperature-soft: #e5f0fb;
+  --temperature-border: #174a7e;
+  --temperature-pill-text: #ffffff;
+  --temperature-soft-text: #17324d;
+}
+[data-temperature="cool"] {
+  --temperature-strong: #2f75a8;
+  --temperature-soft: #e9f4fb;
+  --temperature-border: #2f75a8;
+  --temperature-pill-text: #ffffff;
+  --temperature-soft-text: #17394f;
+}
+[data-temperature="mild"] {
+  --temperature-strong: #8dc5df;
+  --temperature-soft: #eff8fb;
+  --temperature-border: #5797b5;
+  --temperature-pill-text: #123849;
+  --temperature-soft-text: #123849;
+}
+[data-temperature="neutral"] {
+  --temperature-strong: #d9d8d2;
+  --temperature-soft: #f7f6f2;
+  --temperature-border: #aaa69b;
+  --temperature-pill-text: #32332f;
+  --temperature-soft-text: #393a37;
+}
+[data-temperature="warm"] {
+  --temperature-strong: #e6c84f;
+  --temperature-soft: #fff8d9;
+  --temperature-border: #b79a20;
+  --temperature-pill-text: #3d3300;
+  --temperature-soft-text: #4f4100;
+}
+[data-temperature="hot"] {
+  --temperature-strong: #df8735;
+  --temperature-soft: #fff0df;
+  --temperature-border: #c36a1f;
+  --temperature-pill-text: #402000;
+  --temperature-soft-text: #512800;
+}
+[data-temperature="very-hot"] {
+  --temperature-strong: #c94b3e;
+  --temperature-soft: #fde9e6;
+  --temperature-border: #b53a31;
+  --temperature-pill-text: #ffffff;
+  --temperature-soft-text: #61211b;
+}
+[data-temperature="answer"] {
+  --temperature-strong: #8f1f2d;
+  --temperature-soft: #f9dfe3;
+  --temperature-border: #8f1f2d;
+  --temperature-pill-text: #ffffff;
+  --temperature-soft-text: #5f1520;
+}
 
 #history-section[data-empty="true"] { visibility: hidden; }
 .history-heading { display: flex; align-items: baseline; justify-content: space-between; }
@@ -143,6 +213,17 @@ button:hover:not(:disabled) { border-color: #176b50; }
 table { width: 100%; border-collapse: collapse; background: #fffdf8; }
 th, td { border-bottom: 1px solid #d7d2c8; padding: 0.7rem; text-align: left; }
 th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; }
+.temperature-pill {
+  display: inline-block;
+  min-width: 3.5rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: var(--temperature-strong);
+  color: var(--temperature-pill-text);
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+}
 .solved-row { background: #d8f0e5; font-weight: 700; }
 .answer-row { background: #f6dfd3; font-weight: 700; }
 .hint-badge, .answer-badge {
@@ -187,6 +268,62 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .answer-badge { background: #743922; color: #ffd5c1; }
   .give-up-button, .status[data-kind="revealed"] { border-color: #d18b69; color: #ffb996; }
   th, td { border-color: #43483f; }
+  [data-temperature="cold"] {
+    --temperature-strong: #194d7a;
+    --temperature-soft: #172a3c;
+    --temperature-border: #3c7fb4;
+    --temperature-pill-text: #f4f9ff;
+    --temperature-soft-text: #c6e4fa;
+  }
+  [data-temperature="cool"] {
+    --temperature-strong: #28658e;
+    --temperature-soft: #1b303e;
+    --temperature-border: #4d8bb3;
+    --temperature-pill-text: #f4f9ff;
+    --temperature-soft-text: #d1eafa;
+  }
+  [data-temperature="mild"] {
+    --temperature-strong: #35677b;
+    --temperature-soft: #21343b;
+    --temperature-border: #6aa1b5;
+    --temperature-pill-text: #f7fbfc;
+    --temperature-soft-text: #d3edf5;
+  }
+  [data-temperature="neutral"] {
+    --temperature-strong: #4b4d47;
+    --temperature-soft: #292b27;
+    --temperature-border: #686b63;
+    --temperature-pill-text: #f3f2ed;
+    --temperature-soft-text: #d9dbd4;
+  }
+  [data-temperature="warm"] {
+    --temperature-strong: #766315;
+    --temperature-soft: #393317;
+    --temperature-border: #a58d2b;
+    --temperature-pill-text: #fff2a8;
+    --temperature-soft-text: #fff0a3;
+  }
+  [data-temperature="hot"] {
+    --temperature-strong: #824817;
+    --temperature-soft: #3d2919;
+    --temperature-border: #b76a2d;
+    --temperature-pill-text: #ffdfbd;
+    --temperature-soft-text: #ffd8ad;
+  }
+  [data-temperature="very-hot"] {
+    --temperature-strong: #82332e;
+    --temperature-soft: #3e2220;
+    --temperature-border: #b9554d;
+    --temperature-pill-text: #ffd8d3;
+    --temperature-soft-text: #ffc8c1;
+  }
+  [data-temperature="answer"] {
+    --temperature-strong: #a02636;
+    --temperature-soft: #461f26;
+    --temperature-border: #cf5967;
+    --temperature-pill-text: #fff5f6;
+    --temperature-soft-text: #ffd4da;
+  }
 }
 
 @media (max-width: 44rem) {
