@@ -155,7 +155,7 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
+  text-transform: lowercase;
   vertical-align: 0.1em;
 }
 .answer-badge { background: #e5b9a3; color: #612b17; }
