@@ -87,11 +87,21 @@ export async function loadCollection(
   const collectionRoot = parentUrl(manifestUrl);
   const manifest = await fetchJson<CollectionManifest>(manifestUrl);
   if (
-    manifest.schemaVersion !== 2 ||
+    manifest.schemaVersion !== 3 ||
     manifest.id !== summary.id ||
     manifest.language !== summary.language ||
     !extractorIsSupported(manifest) ||
-    manifest.puzzles.length === 0
+    manifest.puzzles.length === 0 ||
+    manifest.puzzles.some(
+      (puzzle) =>
+        typeof puzzle.id !== "string" ||
+        typeof puzzle.label !== "string" ||
+        typeof puzzle.file !== "string" ||
+        ![
+          "animal", "object", "action", "adjective", "food", "place",
+          "occupation", "clothing",
+        ].includes(puzzle.category),
+    )
   ) {
     throw new Error("The puzzle collection is invalid or empty.");
   }
@@ -123,7 +133,10 @@ export async function loadPuzzle(root: string, file: string): Promise<PuzzleData
   const puzzle = await fetchJson<PuzzleData>(resolveDataUrl(root, file));
   if (
     puzzle.schemaVersion !== 2 ||
-    !["animal", "object", "action", "adjective", "food", "place"].includes(puzzle.category)
+    ![
+      "animal", "object", "action", "adjective", "food", "place",
+      "occupation", "clothing",
+    ].includes(puzzle.category)
   ) {
     throw new Error("The puzzle format is not supported.");
   }

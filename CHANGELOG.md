@@ -1,16 +1,29 @@
 # Changelog
 
-Notable user-facing changes to wordsim are recorded here.
+## [1.3.0] - 2026-08-18
 
-## [Unreleased]
+### Added
 
-## [1.1.1] - 2026-08-17
+- Added category selection with an “Anything” default and two new categories: occupations and clothing.
+- Expanded the English and Turkish collections to 160 puzzles each, with 20 puzzles in every category.
 
 ### Changed
 
-- Moved live game feedback beside the guess input and added the guessed word, similarity, and rank so results remain visible on mobile keyboards.
+- Collapsed the larger puzzle grid behind a compact Show puzzles control while keeping global puzzle numbers.
+
+## [1.2.1] - 2026-08-18
+
+### Added
+
+- Added the changelog!
+
+## [1.2.0] - 2026-08-17
+
+### Changed
+
+- Moved live game feedback beside the guess input and added the guessed word and rank so results remain visible on mobile keyboards.
 - Added blue-to-red temperature indicators to make proximity ranks easier to scan.
-- Removed numeric similarity scores from the game UI so rank remains the single proximity measure.
+- Removed numeric similarity scores from the game UI for simplicity.
 - Applied the blue-to-red temperature scale to the wordsim heading.
 
 ## [1.1.0] - 2026-08-17
@@ -18,15 +31,11 @@ Notable user-facing changes to wordsim are recorded here.
 ### Added
 
 - Added a fully localized Turkish game and a language selector.
-- Added Turkish vocabulary preprocessing and rankings generated from a Turkish skip-gram Word2Vec model.
+- Added Turkish vocabulary preprocessing and rankings.
 - Added an in-game explanation of the rules, category hints, and clearer puzzle progress controls.
-
-### Changed
-
-- Packaged the game as a self-contained static directory suitable for installation below another static or Jekyll site.
 
 ## [1.0.0] - 2026-08-16
 
 ### Added
 
-- Released the original English word guessing game with precomputed EmbeddingGemma similarities.
+- Released the original English word guessing game with precomputed similarities.

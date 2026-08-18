@@ -4,6 +4,20 @@ import { describe, it } from "node:test";
 import { TRANSLATIONS } from "../src/i18n";
 
 describe("guess feedback translations", () => {
+  it("localizes the changelog footer label", () => {
+    assert.equal(TRANSLATIONS.en.changelog, "Changelog");
+    assert.equal(TRANSLATIONS.tr.changelog, "Değişiklikler");
+  });
+
+  it("localizes category selection and the expanded categories", () => {
+    assert.equal(TRANSLATIONS.en.anything, "Anything");
+    assert.equal(TRANSLATIONS.tr.anything, "Herhangi");
+    assert.equal(TRANSLATIONS.en.categories.occupation, "Occupation");
+    assert.equal(TRANSLATIONS.tr.categories.occupation, "Meslek");
+    assert.equal(TRANSLATIONS.en.categories.clothing, "Clothing");
+    assert.equal(TRANSLATIONS.tr.categories.clothing, "Giyim");
+  });
+
   it("explains the temperature scale in both languages", () => {
     assert.match(TRANSLATIONS.en.howRankingText, /blue .* red/);
     assert.match(TRANSLATIONS.tr.howRankingText, /mavi .* kırmızı/);

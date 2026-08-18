@@ -1,11 +1,12 @@
 {
   "name": "wordsim",
-  "version": "1.1.1",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
-    "build:game": "esbuild src/main.ts --bundle --minify --outfile=wordsim/app.js",
+    "build:changelog": "node scripts/build-changelog.mjs",
+    "build:game": "npm run build:changelog && esbuild src/main.ts --bundle --minify --outfile=wordsim/app.js",
     "build:site": "npm run build:game && bundle exec jekyll build",
-    "watch:game": "esbuild src/main.ts --bundle --outfile=wordsim/app.js --watch",
+    "watch:game": "npm run build:changelog && esbuild src/main.ts --bundle --outfile=wordsim/app.js --watch",
     "test": "esbuild tests/*.test.ts --bundle --platform=node --format=cjs --outdir=.test-build && node --test .test-build/*.test.js"
   },
   "devDependencies": {

@@ -12,6 +12,7 @@ import type {
 
 const packageRoot = path.join(process.cwd(), "wordsim");
 const indexHtml = readFileSync(path.join(packageRoot, "index.html"), "utf8");
+const changelogHtml = readFileSync(path.join(packageRoot, "changelog.html"), "utf8");
 const sourceStyles = readFileSync(path.join(process.cwd(), "src/styles.css"), "utf8");
 const packageMetadata = JSON.parse(
   readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
@@ -71,6 +72,14 @@ describe("standalone package", () => {
     }
   });
 
+  it("includes category selection and a collapsed puzzle grid", () => {
+    assert.match(indexHtml, /<label[^>]*for="category-select"[^>]*>Category<\/label>/);
+    assert.match(indexHtml, /<select id="category-select"[^>]*disabled>/);
+    assert.match(indexHtml, /<option value="anything">Anything<\/option>/);
+    assert.match(indexHtml, /id="puzzle-toggle-button"[^>]*aria-expanded="false"[^>]*disabled/);
+    assert.match(indexHtml, /id="puzzle-grid"[^>]*hidden/);
+  });
+
   it("places live feedback between the guess row and assistance controls", () => {
     assert.match(
       indexHtml,
@@ -87,6 +96,20 @@ describe("standalone package", () => {
       assert.match(indexHtml, new RegExp(`id="${id}"`));
     }
     assert.match(indexHtml, /A word guessing game based on word similarities\./);
+    const aboutSummary = indexHtml.match(/<summary>([\s\S]*?)<\/summary>/)?.[1] ?? "";
+    assert.doesNotMatch(aboutSummary, /<a\b/);
+    assert.match(indexHtml, /<a id="changelog-link" href="\.\/changelog\.html">Changelog<\/a>/);
+  });
+
+  it("includes a standalone generated changelog", () => {
+    assert.match(changelogHtml, /^<!doctype html>/);
+    assert.match(changelogHtml, /href="\.\/app\.css"/);
+    assert.match(changelogHtml, /class="home-link" href="\.\/"/);
+    assert.doesNotMatch(changelogHtml, /\{[{%]/);
+    assert.doesNotMatch(changelogHtml, /Unreleased/);
+    for (const version of ["1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
+      assert.match(changelogHtml, new RegExp(`v${version.replaceAll(".", "\\.")}`));
+    }
   });
 
   it("keeps release metadata synchronized", () => {
@@ -96,13 +119,13 @@ describe("standalone package", () => {
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.1.1");
+    assert.equal(packageMetadata.version, "1.3.0");
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });
 
   it("contains every runtime file referenced by every catalog collection", () => {
-    for (const file of ["app.js", "app.css", "data/catalog.json"]) {
+    for (const file of ["app.js", "app.css", "changelog.html", "data/catalog.json"]) {
       assert.equal(statSync(path.join(packageRoot, file)).isFile(), true);
     }
 
@@ -158,17 +181,22 @@ describe("standalone package", () => {
           assert.equal(words.has(word), false, `unexpected Turkish word: ${word}`);
         }
       }
-      assert.equal(manifest.puzzles.length, 50);
+      assert.equal(manifest.schemaVersion, 3);
+      assert.equal(manifest.puzzles.length, 160);
+      const categoryCounts = new Map<string, number>();
       for (const puzzle of manifest.puzzles) {
         const puzzlePath = path.join(collectionRoot, puzzle.file);
         assert.equal(statSync(puzzlePath).isFile(), true);
         const data = JSON.parse(readFileSync(puzzlePath, "utf8")) as PuzzleData;
         assert.equal(data.vocabularyVersion, vocabulary.version);
+        assert.equal(data.category, puzzle.category);
+        categoryCounts.set(puzzle.category, (categoryCounts.get(puzzle.category) ?? 0) + 1);
         assert.equal(data.scores.length, vocabulary.keys.length);
         assert.equal(data.topIndices.length, 1_000);
         assert.equal(vocabulary.keys[data.topIndices[0]], data.targetKey);
         assert.equal(data.scores[data.topIndices[0]], 10_000);
       }
+      assert.deepEqual([...categoryCounts.values()].sort((a, b) => a - b), Array(8).fill(20));
     }
 
     const turkish = catalog.collections.find((collection) => collection.language === "tr");

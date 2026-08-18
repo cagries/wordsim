@@ -2,11 +2,11 @@
 
 A small game that scores guesses by semantic similarity. The game is a standalone static page with a vanilla TypeScript client; all embeddings, cosine similarities, and proximity ranks are computed offline. This repository also includes a Jekyll landing page for local previewing.
 
-The demo contains English and Turkish collections, each with 50 puzzles spanning animals, objects, actions, adjectives, foods, and places. Their stable randomized IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`. English uses EmbeddingGemma, while Turkish uses a Turkish skip-gram Word2Vec model. The browser downloads the selected language's shared vocabulary and one compact score table at a time: 30,000 English words or 12,478 morphologically filtered, model-covered Turkish words.
+The demo contains English and Turkish collections, each with 160 puzzles: 20 each for animals, objects, actions, adjectives, foods, places, occupations, and clothing. Their stable IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`. English uses EmbeddingGemma, while Turkish uses a Turkish skip-gram Word2Vec model. The browser downloads the selected language's shared vocabulary and one compact score table at a time: 30,000 English words or 12,478 morphologically filtered, model-covered Turkish words.
 
 Players can switch the fully localized interface between English and Turkish with the language selector beside the title. On the first visit, the browser language selects a collection when possible; an explicit choice is remembered. Puzzle progress is stored separately for each collection, and existing English progress from the original single-language release is imported automatically.
 
-Players choose puzzles from a responsive numbered grid. Started, solved, and answer-revealed puzzles are marked separately. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 3 so that the answer and its nearest neighbor remain hidden. A separate category hint unlocks after 5 accepted player guesses; invalid guesses and word hints do not advance that threshold. Players may also give up at any time, confirm the choice, and reveal the answer without counting the puzzle as solved.
+Players can filter puzzles by category before guessing; “Anything” remains the default. The responsive numbered grid is collapsed by default, retains global puzzle numbers when filtered, and marks started, solved, and answer-revealed puzzles separately. Ranked word hints remain unlimited: the first reveals proximity rank 20, each subsequent hint moves one rank closer, and hints stop at rank 3 so that the answer and its nearest neighbor remain hidden. Under “Anything,” a separate category hint unlocks after 5 accepted player guesses; selecting a category shows it from the start. Players may also give up at any time, confirm the choice, and reveal the answer without counting the puzzle as solved.
 
 ## Prerequisites
 
@@ -44,8 +44,8 @@ Generation performs the following work:
 1. Selects and normalizes entries from `wordfreq`: the 30,000 most frequent valid English surface forms, or the reviewed Zeyrek-preprocessed Turkish vocabulary.
 2. Encodes the vocabulary with the collection's pinned extractor: prompted EmbeddingGemma for English or the static Word2Vec table for Turkish.
 3. Stores normalized embeddings in `pipeline-cache/<collection-id>/embeddings.npy` for reuse.
-4. Reads the language's 50 stable IDs, words, and categories from `pipeline/targets/`.
-5. Writes a versioned vocabulary, collection manifest, and 50 minified puzzle tables under `wordsim/data/collections/<collection-id>/`, plus the shared `catalog.json`.
+4. Reads the language's 160 stable IDs, words, and categories from `pipeline/targets/` and verifies exactly 20 targets per category.
+5. Writes a versioned vocabulary, collection manifest, and 160 minified puzzle tables under `wordsim/data/collections/<collection-id>/`, plus the shared `catalog.json`.
 
 Useful generator options include `--device mps`, `--device cuda`, `--batch-size N`, `--targets PATH`, and `--force`. The default uses the framework-selected embedding device and float32 model activations; Zeyrek preprocessing runs on the CPU from resources installed with the package. A valid generated vocabulary and embedding cache can be reused without loading the model dependencies. Turkish generation writes a detailed, ignored review artifact to `pipeline-cache/<collection-id>/vocabulary-audit.json`. Embedding regeneration is automatic if the model, prompt, Sentence Transformers version, or vocabulary checksum changes.
 
@@ -64,7 +64,7 @@ python -m pipeline audit --collection word2vec-skipgram-300-tr-v1 --limit 25
 
 Generation scans the binary file without loading its full 1.57-million-token vocabulary into memory. It retains exact NFC matches from the 12,812-word reviewed Turkish base vocabulary and writes a coverage report to `pipeline-cache/word2vec-skipgram-300-tr-v1/coverage-audit.json`. Missing non-target words are omitted without reordering the rest. Any missing puzzle target, malformed vector, checksum failure, or coverage below 1,000 words stops generation.
 
-With the pinned release, 12,478 of 12,812 requested words are covered (97.3931%), including all 50 puzzle targets. The resulting local float32 cache is 14,973,728 bytes. This measured baseline should be rechecked if either the reviewed Turkish vocabulary or artifact identity changes.
+With the pinned release, 12,478 of 12,812 requested words are covered (97.3931%), including all 160 puzzle targets. The resulting local float32 cache is 14,973,728 bytes. This measured baseline should be rechecked if either the reviewed Turkish vocabulary or artifact identity changes.
 
 The model lookup intentionally does **not** apply the game's circumflex collapse to published model tokens. For example, a vector stored only for `hâlâ` is not silently assigned to the distinct normalized game key `hala`. This makes OOV loss visible and avoids choosing arbitrarily when multiple model tokens collapse to one game spelling.
 
@@ -93,21 +93,21 @@ Measured static data sizes for the current build are:
 
 | Asset | Raw | Gzip level 9 |
 | --- | ---: | ---: |
-| Collection manifest | 3.3 KB | 739 B |
+| Collection manifest | about 13 KB | about 1.8 KB |
 | English vocabulary (30,000 words) | 301.9 KB | 118.2 KB |
 | Turkish vocabulary (12,478 words) | 128.2 KB | 49.8 KB |
 | Typical English puzzle | 155.8 KB | 59.9 KB |
 | Typical Turkish puzzle | 65.5 KB | 27.9 KB |
 
-The first puzzle therefore requires about 461 KB raw / 179 KB compressed for English or 197 KB raw / 78 KB compressed for Turkish, including the shared vocabulary and manifest. Each later puzzle fetches only its score table. The current minified JavaScript and CSS add about 28 KB raw.
+The first puzzle therefore requires about 471 KB raw / 180 KB compressed for English or 207 KB raw / 80 KB compressed for Turkish, including the shared vocabulary and manifest. Each later puzzle fetches only its score table. The current minified JavaScript and CSS add about 37 KB raw.
 
 The complete generated static data is:
 
-- English: 8.09 MB raw / 3.12 MB compressed, with a 92.16 MB local embedding cache.
-- Turkish: 3.37 MB raw / 1.45 MB compressed, with a 14.97 MB local embedding cache.
-- First-puzzle transfer remains independent of the other 49 puzzles because tables are fetched on demand.
+- English: 25.24 MB raw / 9.69 MB compressed, with a 92.16 MB local embedding cache.
+- Turkish: 10.55 MB raw / 4.53 MB compressed, with a 14.97 MB local embedding cache.
+- First-puzzle transfer remains independent of the other 159 puzzles because tables are fetched on demand.
 
-The two current collections occupy 11.47 MB raw or about 4.56 MB with gzip. A typical player still downloads only the catalog, the vocabulary for the selected language, and the puzzle they select; switching languages lazily fetches the other vocabulary. Actual network transfer sizes depend on the production host enabling gzip or Brotli; without HTTP compression, the raw sizes apply.
+The two current collections occupy 35.78 MB raw or about 14.21 MB with gzip. A typical player still downloads only the catalog, the vocabulary for the selected language, and the puzzle they select; switching languages lazily fetches the other vocabulary. Actual network transfer sizes depend on the production host enabling gzip or Brotli; without HTTP compression, the raw sizes apply.
 
 ## Build and run
 
@@ -128,12 +128,12 @@ The repository intentionally contains no deployment workflow. `npm run build:sit
 
 ## Releases
 
-The application follows semantic versioning and records user-facing changes in [CHANGELOG.md](CHANGELOG.md). The version in `package.json` is authoritative and is kept in sync with the Python pipeline package metadata in `pyproject.toml`.
+The application follows semantic versioning and records user-facing changes in [CHANGELOG.md](CHANGELOG.md). The version in `package.json` is authoritative and is kept in sync with the Python pipeline package metadata in `pyproject.toml`. `npm run build:changelog` renders the public standalone `wordsim/changelog.html` page from that canonical Markdown file.
 
 For a release:
 
 1. Update both package versions and move the relevant changelog entries from `Unreleased` into a dated release section.
-2. Run the TypeScript and Python tests and build the production game and Jekyll site.
+2. Run `npm run build:game` to refresh the public changelog and browser assets, then run the TypeScript and Python tests and build the Jekyll site.
 3. Commit the release, then manually tag that commit as `vX.Y.Z`.
 
 The deployed English-only baseline is `v1.0.0`; the first English and Turkish release is `v1.1.0`. Collection IDs and vocabulary versions remain independent because they identify generated similarity data rather than the application release.
@@ -145,6 +145,7 @@ The complete runtime is the `wordsim/` directory:
 ```text
 wordsim/
 ├── index.html
+├── changelog.html
 ├── app.js
 ├── app.css
 └── data/
@@ -177,7 +178,7 @@ npm run build:site
 
 ## Data format and future extractors
 
-`wordsim/data/catalog.json` lists the available language collections and their manifests. Each vocabulary records its language, named normalization policy, and language-specific vocabulary policy. Scores are signed integers equal to `round(cosine_similarity * 10000)` and remain available internally for ordering results. The game UI presents proximity through rank and temperature instead of exposing the raw numeric score. Each puzzle also contains the vocabulary indices of its nearest 1,000 words.
+`wordsim/data/catalog.json` lists the available language collections and their manifests. Each collection manifest includes the category of every puzzle so the browser can filter the lightweight index before loading a score table. Each vocabulary records its language, named normalization policy, and language-specific vocabulary policy. Scores are signed integers equal to `round(cosine_similarity * 10000)` and remain available internally for ordering results. The game UI presents proximity through rank and temperature instead of exposing the raw numeric score. Each puzzle also contains the vocabulary indices of its nearest 1,000 words.
 
 The Python extractor boundary returns a normalized NumPy matrix. Sentence Transformers and selectively loaded binary Word2Vec vectors therefore reuse the same scoring code without exposing a model selector in the user interface.
 

@@ -19,6 +19,7 @@ from pipeline.config import (
     DEFAULT_COLLECTION_ID,
     ENGLISH_COLLECTION_ID,
     TARGET_COUNT,
+    TARGETS_PER_CATEGORY,
     TURKISH_COLLECTION_ID,
     TURKISH_MAGIBU_COLLECTION_ID,
     TURKISH_WORD2VEC_COLLECTION_ID,
@@ -60,12 +61,21 @@ class PipelineCoreTests(unittest.TestCase):
         for collection_id, opening in expected_openings.items():
             collection = COLLECTIONS[collection_id]
             targets = load_targets(
-                collection.targets, TARGET_COUNT, collection.language
+                collection.targets,
+                TARGET_COUNT,
+                collection.language,
+                TARGETS_PER_CATEGORY,
             )
             self.assertEqual(tuple(target["word"] for target in targets[:2]), opening)
             self.assertEqual({target["category"] for target in targets}, {
-                "animal", "object", "action", "adjective", "food", "place"
+                "animal", "object", "action", "adjective", "food", "place",
+                "occupation", "clothing"
             })
+            counts = {
+                category: sum(target["category"] == category for target in targets)
+                for category in {target["category"] for target in targets}
+            }
+            self.assertEqual(set(counts.values()), {TARGETS_PER_CATEGORY})
 
     def test_word2vec_is_published_and_magibu_is_staged(self) -> None:
         collection = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID]
@@ -254,6 +264,21 @@ class PipelineCoreTests(unittest.TestCase):
                 load_targets(path, 2)
             with self.assertRaisesRegex(ValueError, "expected 3"):
                 load_targets(path, 3)
+
+    def test_load_targets_rejects_unbalanced_categories(self) -> None:
+        categories = [
+            "animal", "object", "action", "adjective", "food", "place",
+            "occupation", "occupation",
+        ]
+        targets = [
+            {"id": str(index), "word": f"word{chr(97 + index)}", "category": category}
+            for index, category in enumerate(categories)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "targets.json"
+            path.write_text(json.dumps(targets))
+            with self.assertRaisesRegex(ValueError, "each contain 1"):
+                load_targets(path, 8, expected_per_category=1)
 
     def test_build_vocabulary_filters_and_deduplicates(self) -> None:
         candidates = [" Cat ", "two words", "DOG", "dog", "can't", "owl"]

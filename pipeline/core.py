@@ -9,7 +9,16 @@ from typing import Iterable
 import numpy as np
 
 
-TARGET_CATEGORIES = {"animal", "object", "action", "adjective", "food", "place"}
+TARGET_CATEGORIES = {
+    "animal",
+    "object",
+    "action",
+    "adjective",
+    "food",
+    "place",
+    "occupation",
+    "clothing",
+}
 ALLOWED_CHARACTERS = {
     "en": frozenset("abcdefghijklmnopqrstuvwxyz"),
     "tr": frozenset("abcdefghijklmnopqrstuvwxyzçğıöşü"),
@@ -37,7 +46,10 @@ def is_valid_word(word: str, language: str = "en") -> bool:
 
 
 def load_targets(
-    path: Path, expected_count: int, language: str = "en"
+    path: Path,
+    expected_count: int,
+    language: str = "en",
+    expected_per_category: int | None = None,
 ) -> list[dict[str, str]]:
     value = read_json(path)
     if not isinstance(value, list) or len(value) != expected_count:
@@ -68,6 +80,24 @@ def load_targets(
             raise ValueError(f'Unsupported category for "{word}": {category!r}.')
         seen_words.add(word)
         targets.append({"id": target_id, "word": word, "category": category})
+    if expected_per_category is not None:
+        counts = {
+            category: sum(target["category"] == category for target in targets)
+            for category in TARGET_CATEGORIES
+        }
+        invalid = {
+            category: count
+            for category, count in counts.items()
+            if count != expected_per_category
+        }
+        if invalid:
+            details = ", ".join(
+                f"{category}={count}" for category, count in sorted(invalid.items())
+            )
+            raise ValueError(
+                f"Target categories must each contain {expected_per_category} entries; "
+                f"found {details}."
+            )
     return targets
 
 

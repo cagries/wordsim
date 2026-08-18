@@ -52,10 +52,11 @@ export interface PuzzleSummary {
   id: string;
   label: string;
   file: string;
+  category: TargetCategory;
 }
 
 export interface CollectionManifest {
-  schemaVersion: 2;
+  schemaVersion: 3;
   id: string;
   language: LanguageCode;
   extractor: ExtractorMetadata;
@@ -73,7 +74,17 @@ export interface VocabularyData {
   keys: string[];
 }
 
-export type TargetCategory = "animal" | "object" | "action" | "adjective" | "food" | "place";
+export type TargetCategory =
+  | "animal"
+  | "object"
+  | "action"
+  | "adjective"
+  | "food"
+  | "place"
+  | "occupation"
+  | "clothing";
+
+export type CategoryFilter = TargetCategory | "anything";
 
 export interface PuzzleData {
   schemaVersion: 2;

@@ -7,7 +7,9 @@ from pathlib import Path
 STS_PROMPT = "task: sentence similarity | query: "
 VOCABULARY_SIZE = 30_000
 TOP_RANK_COUNT = 1_000
-TARGET_COUNT = 50
+TARGETS_PER_CATEGORY = 20
+TARGET_CATEGORY_COUNT = 8
+TARGET_COUNT = TARGETS_PER_CATEGORY * TARGET_CATEGORY_COUNT
 DATA_ROOT = Path("wordsim/data")
 CACHE_ROOT = Path("pipeline-cache")
 

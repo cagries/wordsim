@@ -41,10 +41,15 @@ export interface Translations {
   answerBadge: string;
   cold: string;
   category: string;
+  anything: string;
+  categorySelection: string;
   language: string;
   categories: Record<TargetCategory, string>;
   historyCount: (guesses: number, hints: number) => string;
   puzzleAriaLabel: (number: number, state: "untouched" | "started" | "solved" | "revealed") => string;
+  puzzlePosition: (number: number, total: number) => string;
+  showPuzzles: string;
+  hidePuzzles: string;
   loadingPuzzles: string;
   loadingPuzzle: (number: number) => string;
   tryWord: string;
@@ -65,6 +70,7 @@ export interface Translations {
   answerFallbackError: string;
   about: string;
   aboutDescription: string;
+  changelog: string;
   guessError: (code: GuessErrorCode, word: string | undefined, outcome: GameOutcome) => string;
 }
 
@@ -79,7 +85,7 @@ const english: Translations = {
   howRankingLabel: "Ranking:",
   howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).",
   howHintsLabel: "Hints:",
-  howHintsText: "Word hints reveal increasingly close words. The category hint unlocks after 5 accepted guesses.",
+  howHintsText: "Word hints reveal increasingly close words. Under Anything, the category hint unlocks after 5 accepted guesses.",
   howFormsLabel: "",
   howFormsText: "",
   yourGuess: "Your guess",
@@ -104,6 +110,8 @@ const english: Translations = {
   answerBadge: "Answer",
   cold: "cold",
   category: "Category",
+  anything: "Anything",
+  categorySelection: "Choose a category",
   language: "Language",
   categories: {
     animal: "Animal",
@@ -112,9 +120,14 @@ const english: Translations = {
     adjective: "Adjective",
     food: "Food",
     place: "Place",
+    occupation: "Occupation",
+    clothing: "Clothing",
   },
   historyCount: (guesses, hints) => `${guesses} ${guesses === 1 ? "guess" : "guesses"} · ${hints} ${hints === 1 ? "hint" : "hints"}`,
   puzzleAriaLabel: (number, state) => `Puzzle ${number}${state === "solved" ? ", solved" : state === "revealed" ? ", answer revealed" : state === "started" ? ", started" : ""}`,
+  puzzlePosition: (number, total) => `Puzzle ${number} of ${total}`,
+  showPuzzles: "Show puzzles",
+  hidePuzzles: "Hide puzzles",
   loadingPuzzles: "Loading puzzles…",
   loadingPuzzle: (number) => `Loading Puzzle ${number}…`,
   tryWord: "Try any common English word.",
@@ -135,6 +148,7 @@ const english: Translations = {
   answerFallbackError: "Could not reveal the answer.",
   about: "About",
   aboutDescription: "A word guessing game based on word similarities.",
+  changelog: "Changelog",
   guessError: (code, word, outcome) => {
     if (code === "empty") return "Enter a word.";
     if (code === "invalid") return "Guesses must contain letters only (no spaces).";
@@ -157,7 +171,7 @@ const turkish: Translations = {
   howRankingLabel: "Sıralama:",
   howRankingText: "Daha düşük sıralama, o kelime daha yakın anlamına geliyor. #1 gizli kelime, “uzak” tahmin ise en yakın 1000 kelimenin dışında. Renkler uzaktaki mavi tonlardan yakındaki kırmızı tonlara ilerler.",
   howHintsLabel: "İpuçları:",
-  howHintsText: "Kelime ipuçları gizli kelimeye yakın kelimeler gösterir. Kategori ipucu 5 geçerli tahminden sonra açılır.",
+  howHintsText: "Kelime ipuçları gizli kelimeye yakın kelimeler gösterir. Herhangi seçiliyken kategori ipucu 5 geçerli tahminden sonra açılır.",
   howFormsLabel: "Kelime biçimleri:",
   howFormsText: "Kelimeler sözlükteki biçimlerinde, fiiller -mak/-mek halleriyle yer alıyor.",
   yourGuess: "Tahminin",
@@ -182,6 +196,8 @@ const turkish: Translations = {
   answerBadge: "Cevap",
   cold: "uzak",
   category: "Kategori",
+  anything: "Herhangi",
+  categorySelection: "Kategori seç",
   language: "Dil",
   categories: {
     animal: "Hayvan",
@@ -190,9 +206,14 @@ const turkish: Translations = {
     adjective: "Sıfat",
     food: "Yiyecek",
     place: "Yer",
+    occupation: "Meslek",
+    clothing: "Giyim",
   },
   historyCount: (guesses, hints) => `${guesses} tahmin · ${hints} ipucu`,
   puzzleAriaLabel: (number, state) => `${number}. bulmaca${state === "solved" ? ", çözüldü" : state === "revealed" ? ", cevap gösterildi" : state === "started" ? ", başlandı" : ""}`,
+  puzzlePosition: (number, total) => `${total} bulmacadan ${number}.`,
+  showPuzzles: "Bulmacaları göster",
+  hidePuzzles: "Bulmacaları gizle",
   loadingPuzzles: "Bulmacalar yükleniyor…",
   loadingPuzzle: (number) => `${number}. bulmaca yükleniyor…`,
   tryWord: "Yaygın bir Türkçe kelime dene.",
@@ -213,6 +234,7 @@ const turkish: Translations = {
   answerFallbackError: "Cevap gösterilemedi.",
   about: "Hakkında",
   aboutDescription: "Kelime benzerliklerine dayalı bir kelime tahmin oyunu.",
+  changelog: "Değişiklikler",
   guessError: (code, word, outcome) => {
     if (code === "empty") return "Bir kelime gir.";
     if (code === "invalid") return "Tahminler yalnızca harf içermelidir (boşluk kullanma).";

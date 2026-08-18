@@ -14,6 +14,7 @@ from pipeline.config import (
     DATA_ROOT,
     DEFAULT_COLLECTION_ID,
     TARGET_COUNT,
+    TARGETS_PER_CATEGORY,
     TOP_RANK_COUNT,
     TURKISH_OVERRIDES_FILE,
     VOCABULARY_SIZE,
@@ -305,7 +306,12 @@ def generate(args: argparse.Namespace) -> None:
         cache=args.cache / collection.id,
     )
     targets_path = args.targets or collection.targets
-    targets = load_targets(targets_path, TARGET_COUNT, collection.language)
+    targets = load_targets(
+        targets_path,
+        TARGET_COUNT,
+        collection.language,
+        expected_per_category=TARGETS_PER_CATEGORY,
+    )
     words = load_or_create_vocabulary(paths, collection)
     missing = [target["word"] for target in targets if target["word"] not in words]
     if missing:
@@ -368,7 +374,14 @@ def generate(args: argparse.Namespace) -> None:
                 "topIndices": top_indices,
             },
         )
-        puzzles.append({"id": target_id, "label": label, "file": filename})
+        puzzles.append(
+            {
+                "id": target_id,
+                "label": label,
+                "file": filename,
+                "category": target["category"],
+            }
+        )
 
     puzzle_directory = paths.output / "puzzles"
     if puzzle_directory.exists():
@@ -382,7 +395,7 @@ def generate(args: argparse.Namespace) -> None:
     write_json(
         paths.manifest,
         {
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "id": collection.id,
             "language": collection.language,
             "extractor": extractor_manifest,
@@ -402,7 +415,10 @@ def audit(args: argparse.Namespace) -> None:
         cache=args.cache / collection.id,
     )
     targets = load_targets(
-        args.targets or collection.targets, TARGET_COUNT, collection.language
+        args.targets or collection.targets,
+        TARGET_COUNT,
+        collection.language,
+        expected_per_category=TARGETS_PER_CATEGORY,
     )
     vocabulary = read_json(paths.vocabulary)
     if not isinstance(vocabulary, dict) or not isinstance(vocabulary.get("keys"), list):

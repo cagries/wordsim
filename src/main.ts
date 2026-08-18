@@ -9,6 +9,7 @@ import {
   GuessError,
 } from "./game";
 import { TRANSLATIONS } from "./i18n";
+import { preferredPuzzleForCategory, puzzlesForCategory } from "./puzzles";
 import {
   emptyProgress,
   loadProgress,
@@ -21,6 +22,7 @@ import type { TemperatureBand } from "./temperature";
 import type {
   CollectionCatalog,
   CollectionSummary,
+  CategoryFilter,
   GuessResult,
   LanguageCode,
   PuzzleSummary,
@@ -43,6 +45,8 @@ const dataRoot: string = configuredDataRoot;
 const metaDescription = requiredElement<HTMLMetaElement>("meta-description");
 const languageLabel = requiredElement<HTMLLabelElement>("language-label");
 const languageSelect = requiredElement<HTMLSelectElement>("language-select");
+const categorySelectLabel = requiredElement<HTMLLabelElement>("category-select-label");
+const categorySelect = requiredElement<HTMLSelectElement>("category-select");
 const tagline = requiredElement<HTMLParagraphElement>("tagline");
 const howSummary = requiredElement<HTMLElement>("how-summary");
 const howIntro = requiredElement<HTMLElement>("how-intro");
@@ -58,6 +62,7 @@ const howFormsText = requiredElement<HTMLElement>("how-forms-text");
 const guessLabel = requiredElement<HTMLElement>("guess-label");
 const assistanceControls = requiredElement<HTMLElement>("assistance-controls");
 const puzzleGrid = requiredElement<HTMLElement>("puzzle-grid");
+const puzzleToggleButton = requiredElement<HTMLButtonElement>("puzzle-toggle-button");
 const resetButton = requiredElement<HTMLButtonElement>("reset-button");
 const giveUpButton = requiredElement<HTMLButtonElement>("give-up-button");
 const form = requiredElement<HTMLFormElement>("guess-form");
@@ -80,6 +85,7 @@ const revealedLegend = requiredElement<HTMLElement>("revealed-legend");
 const appVersion = requiredElement<HTMLElement>("app-version");
 const aboutSummary = requiredElement<HTMLElement>("about-summary");
 const aboutDescription = requiredElement<HTMLElement>("about-description");
+const changelogLink = requiredElement<HTMLAnchorElement>("changelog-link");
 
 appVersion.textContent = `v${APP_VERSION}`;
 
@@ -93,6 +99,8 @@ let activePuzzle: PuzzleSummary | null = null;
 let session: GameSession | null = null;
 let locale: LanguageCode = "en";
 let messages = TRANSLATIONS.en;
+let selectedCategory: CategoryFilter = "anything";
+let puzzleGridExpanded = false;
 let collectionSequence = 0;
 let puzzleSequence = 0;
 const sessions = new Map<string, GameSession>();
@@ -109,6 +117,8 @@ function applyTranslations(): void {
   document.title = messages.documentTitle;
   metaDescription.content = messages.description;
   languageLabel.textContent = messages.language;
+  categorySelectLabel.textContent = messages.category;
+  categorySelect.setAttribute("aria-label", messages.categorySelection);
   tagline.textContent = messages.tagline;
   howSummary.textContent = messages.howToPlay;
   howIntro.textContent = messages.howIntro;
@@ -129,13 +139,45 @@ function applyTranslations(): void {
   guessesHeading.textContent = messages.history;
   wordHeading.textContent = messages.word;
   rankingHeading.textContent = messages.ranking;
-  puzzlesHeading.textContent = messages.puzzles;
+  populateCategorySelect();
+  renderPuzzlePickerHeading();
   resetButton.textContent = messages.resetSelectedPuzzle;
   startedLegend.textContent = `● ${messages.started}`;
   solvedLegend.textContent = `✓ ${messages.solved}`;
   revealedLegend.textContent = `× ${messages.answerRevealed}`;
   aboutSummary.textContent = messages.about;
   aboutDescription.textContent = messages.aboutDescription;
+  changelogLink.textContent = messages.changelog;
+}
+
+const CATEGORY_ORDER = [
+  "animal", "object", "action", "adjective", "food", "place", "occupation", "clothing",
+] as const;
+
+function populateCategorySelect(): void {
+  categorySelect.replaceChildren(
+    ...(["anything", ...CATEGORY_ORDER] as const).map((category) => {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category === "anything"
+        ? messages.anything
+        : messages.categories[category];
+      return option;
+    }),
+  );
+  categorySelect.value = selectedCategory;
+}
+
+function renderPuzzlePickerHeading(): void {
+  const number = activePuzzle ? puzzles.indexOf(activePuzzle) + 1 : 0;
+  puzzlesHeading.textContent = number > 0
+    ? messages.puzzlePosition(number, puzzles.length)
+    : messages.puzzles;
+  puzzleToggleButton.textContent = puzzleGridExpanded
+    ? messages.hidePuzzles
+    : messages.showPuzzles;
+  puzzleToggleButton.setAttribute("aria-expanded", String(puzzleGridExpanded));
+  puzzleGrid.hidden = !puzzleGridExpanded;
 }
 
 function populateLanguageSelect(loadedCatalog: CollectionCatalog): void {
@@ -202,9 +244,13 @@ function updateHintControls(): void {
 
   const guesses = session?.getResultCounts().guesses ?? 0;
   const revealed = categoryIsRevealed();
+  const categorySelected = selectedCategory !== "anything";
   giveUpButton.disabled = !session || session.complete;
+  categoryHintButton.hidden = categorySelected;
 
-  if (!session || session.complete) {
+  if (categorySelected) {
+    categoryHintButton.disabled = true;
+  } else if (!session || session.complete) {
     categoryHintButton.disabled = true;
     categoryHintButton.textContent = messages.categoryHint;
   } else if (revealed) {
@@ -221,7 +267,7 @@ function updateHintControls(): void {
     categoryHintButton.textContent = messages.categoryHint;
   }
 
-  if (session && revealed) {
+  if (session && (revealed || categorySelected)) {
     categoryClue.textContent = `${messages.category}: ${messages.categories[session.category]}`;
     categoryClue.hidden = false;
   } else {
@@ -276,8 +322,9 @@ function renderResults(results: readonly GuessResult[]): void {
 }
 
 function renderPuzzleGrid(): void {
+  const visiblePuzzles = puzzlesForCategory(puzzles, selectedCategory);
   puzzleGrid.replaceChildren(
-    ...puzzles.map((puzzle, index) => {
+    ...visiblePuzzles.map((puzzle) => {
       const saved = savedProgress(puzzle.id);
       const started = Boolean(saved && (saved.actions.length > 0 || saved.categoryRevealed));
       const state = saved?.solved
@@ -295,7 +342,7 @@ function renderPuzzleGrid(): void {
         button.classList.add("selected");
         button.setAttribute("aria-current", "page");
       }
-      const visibleNumber = index + 1;
+      const visibleNumber = puzzles.indexOf(puzzle) + 1;
       button.textContent = saved?.solved
         ? `${visibleNumber} ✓`
         : saved?.gaveUp
@@ -306,6 +353,7 @@ function renderPuzzleGrid(): void {
       return button;
     }),
   );
+  renderPuzzlePickerHeading();
 }
 
 function activateSession(puzzle: PuzzleSummary, loadedSession: GameSession): void {
@@ -408,6 +456,8 @@ async function activateCollection(
   languageSelect.value = summary.id;
   applyTranslations();
   languageSelect.disabled = true;
+  categorySelect.disabled = true;
+  puzzleToggleButton.disabled = true;
   session = null;
   setGuessingEnabled(false);
   updateHintControls();
@@ -441,7 +491,14 @@ async function activateCollection(
     updateHintControls();
     languageSelect.value = summary.id;
     languageSelect.disabled = (catalog?.collections.length ?? 0) < 2;
-    const initialPuzzle = puzzles.find((puzzle) => puzzle.id === progress?.selectedPuzzleId) ?? puzzles[0];
+    categorySelect.disabled = activeCollection === null;
+    puzzleToggleButton.disabled = false;
+    const initialPuzzle = preferredPuzzleForCategory(
+      puzzles,
+      selectedCategory,
+      progress?.selectedPuzzleId ?? null,
+      progress?.puzzles ?? {},
+    );
     if (!initialPuzzle) throw new Error("The puzzle collection is empty.");
     await selectPuzzle(initialPuzzle);
     return true;
@@ -458,6 +515,8 @@ async function activateCollection(
     languageSelect.value = previous.activeCollection?.id ?? "";
     applyTranslations();
     languageSelect.disabled = (catalog?.collections.length ?? 0) < 2;
+    categorySelect.disabled = activeCollection === null;
+    puzzleToggleButton.disabled = puzzles.length === 0;
     if (activePuzzle && session) {
       activateSession(activePuzzle, session);
       setStatus(messages.loadError, "error");
@@ -600,6 +659,25 @@ languageSelect.addEventListener("change", () => {
   );
   if (!selected || selected.id === activeCollection?.id) return;
   void activateCollection(selected, true);
+});
+
+categorySelect.addEventListener("change", () => {
+  selectedCategory = categorySelect.value as CategoryFilter;
+  renderPuzzleGrid();
+  if (!progress) return;
+  const preferred = preferredPuzzleForCategory(
+    puzzles,
+    selectedCategory,
+    activePuzzle?.id ?? null,
+    progress.puzzles,
+  );
+  if (preferred && preferred.id !== activePuzzle?.id) void selectPuzzle(preferred);
+  else updateHintControls();
+});
+
+puzzleToggleButton.addEventListener("click", () => {
+  puzzleGridExpanded = !puzzleGridExpanded;
+  renderPuzzlePickerHeading();
 });
 
 async function initialize(): Promise<void> {

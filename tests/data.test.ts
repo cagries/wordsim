@@ -32,7 +32,7 @@ describe("data loading", () => {
       {
         ok: true,
         json: async () => ({
-          schemaVersion: 2,
+          schemaVersion: 3,
           id: summary.id,
           language: "tr",
           extractor: {
@@ -51,7 +51,12 @@ describe("data loading", () => {
             artifactSha256: "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f",
           },
           vocabularyFile: "vocabulary.json",
-          puzzles: [{ id: "one", label: "Bulmaca 1", file: "puzzles/one.json" }],
+          puzzles: [{
+            id: "one",
+            label: "Bulmaca 1",
+            file: "puzzles/one.json",
+            category: "animal",
+          }],
         }),
       },
       {
@@ -85,7 +90,7 @@ describe("data loading", () => {
   it("rejects a manifest that disagrees with its catalog entry", async () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
-      json: async () => ({ schemaVersion: 2, id: "other", language: "tr", puzzles: [{}] }),
+      json: async () => ({ schemaVersion: 3, id: "other", language: "tr", puzzles: [{}] }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
   });
@@ -94,7 +99,7 @@ describe("data loading", () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
       json: async () => ({
-        schemaVersion: 2,
+        schemaVersion: 3,
         id: summary.id,
         language: summary.language,
         extractor: {
@@ -104,7 +109,7 @@ describe("data loading", () => {
           dimensions: 300,
           trustRemoteCode: true,
         },
-        puzzles: [{}],
+        puzzles: [{ id: "0", label: "Puzzle 1", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
@@ -114,7 +119,7 @@ describe("data loading", () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
       json: async () => ({
-        schemaVersion: 2,
+        schemaVersion: 3,
         id: summary.id,
         language: summary.language,
         extractor: {
@@ -132,7 +137,7 @@ describe("data loading", () => {
           },
           artifactSha256: "wrong",
         },
-        puzzles: [{}],
+        puzzles: [{ id: "0", label: "Puzzle 1", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
