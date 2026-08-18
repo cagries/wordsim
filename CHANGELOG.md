@@ -4,8 +4,9 @@
 
 ### Added
 
-- Added category selection with an “Anything” default and two new categories: occupations and clothing.
-- Expanded the English and Turkish collections to 160 puzzles each, with 20 puzzles in every category.
+- Added category selection with an “Anything” default.
+- Added two new categories: occupations and clothing.
+- Expanded the English and Turkish collections to 160 puzzles each from 50, with 20 puzzles in every category.
 
 ### Changed
 
