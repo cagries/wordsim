@@ -77,6 +77,25 @@ class PipelineCoreTests(unittest.TestCase):
             }
             self.assertEqual(set(counts.values()), {TARGETS_PER_CATEGORY})
 
+        english = load_targets(
+            COLLECTIONS[ENGLISH_COLLECTION_ID].targets, TARGET_COUNT, "en"
+        )
+        turkish = load_targets(
+            COLLECTIONS[TURKISH_COLLECTION_ID].targets, TARGET_COUNT, "tr"
+        )
+        aligned_new_categories = sum(
+            english[index]["category"] == turkish[index]["category"]
+            for index in range(50, TARGET_COUNT)
+        )
+        self.assertLess(aligned_new_categories, 30)
+        turkish_words = {target["word"] for target in turkish}
+        self.assertTrue({"mimar", "asker", "kravat"} <= turkish_words)
+        self.assertTrue({"bilimci", "tesisatçı", "kot"}.isdisjoint(turkish_words))
+        self.assertEqual(
+            tuple(target["word"] for target in turkish[50:54]),
+            ("gitar", "muz", "yapmak", "çiftlik"),
+        )
+
     def test_word2vec_is_published_and_magibu_is_staged(self) -> None:
         collection = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID]
         self.assertTrue(collection.published)
