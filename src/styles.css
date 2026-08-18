@@ -134,8 +134,8 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .puzzle-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
 .puzzle-controls button { margin-bottom: 0.75rem; }
 .give-up-button { border-color: #a45432; color: #853c20; }
+.puzzle-panel[hidden] { display: none; }
 .puzzle-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.4rem; }
-.puzzle-grid[hidden] { display: none; }
 .puzzle-button { min-width: 0; padding: 0.55rem 0.25rem; font-variant-numeric: tabular-nums; }
 .puzzle-button[data-state="started"] { border-color: #b79a3c; background: #fff5cf; color: #5a4710; }
 .puzzle-button[data-state="solved"] { border-color: #176b50; background: #d8f0e5; color: #104c39; font-weight: 750; }

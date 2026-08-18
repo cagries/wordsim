@@ -32,7 +32,7 @@ describe("guess feedback translations", () => {
       TRANSLATIONS.en.coldStatus("apple"),
       "“apple” · cold",
     );
-    assert.equal(TRANSLATIONS.en.solvedStatus("answer"), "Solved! “answer” · #1");
+    assert.equal(TRANSLATIONS.en.solvedStatus("answer"), "Great job! “answer” · #1");
   });
 
   it("formats compact Turkish results", () => {
@@ -44,6 +44,6 @@ describe("guess feedback translations", () => {
       TRANSLATIONS.tr.coldStatus("elma"),
       "“elma” · uzak",
     );
-    assert.equal(TRANSLATIONS.tr.solvedStatus("cevap"), "Çözdün! “cevap” · #1");
+    assert.equal(TRANSLATIONS.tr.solvedStatus("cevap"), "Tebrikler! “cevap” · #1");
   });
 });

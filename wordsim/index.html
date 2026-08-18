@@ -98,12 +98,14 @@
     <div class="puzzle-heading">
       <h2 id="puzzles-heading">Puzzles</h2>
       <div class="puzzle-controls">
-        <button id="puzzle-toggle-button" type="button" aria-expanded="false" aria-controls="puzzle-grid" disabled>Show puzzles</button>
+        <button id="puzzle-toggle-button" type="button" aria-expanded="false" aria-controls="puzzle-panel" disabled>Show puzzles</button>
         <button id="reset-button" type="button" disabled>Reset selected puzzle</button>
       </div>
     </div>
-    <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle" hidden></div>
-    <p class="puzzle-legend"><span id="started-legend">● Started</span><span id="solved-legend">✓ Solved</span><span id="revealed-legend">× Answer revealed</span></p>
+    <div id="puzzle-panel" class="puzzle-panel" hidden>
+      <div id="puzzle-grid" class="puzzle-grid" role="navigation" aria-label="Choose a puzzle"></div>
+      <p class="puzzle-legend"><span id="started-legend">● Started</span><span id="solved-legend">✓ Solved</span><span id="revealed-legend">× Answer revealed</span></p>
+    </div>
   </section>
 
   <footer class="game-footer">

@@ -61,6 +61,7 @@ const howFormsLabel = requiredElement<HTMLElement>("how-forms-label");
 const howFormsText = requiredElement<HTMLElement>("how-forms-text");
 const guessLabel = requiredElement<HTMLElement>("guess-label");
 const assistanceControls = requiredElement<HTMLElement>("assistance-controls");
+const puzzlePanel = requiredElement<HTMLElement>("puzzle-panel");
 const puzzleGrid = requiredElement<HTMLElement>("puzzle-grid");
 const puzzleToggleButton = requiredElement<HTMLButtonElement>("puzzle-toggle-button");
 const resetButton = requiredElement<HTMLButtonElement>("reset-button");
@@ -177,7 +178,7 @@ function renderPuzzlePickerHeading(): void {
     ? messages.hidePuzzles
     : messages.showPuzzles;
   puzzleToggleButton.setAttribute("aria-expanded", String(puzzleGridExpanded));
-  puzzleGrid.hidden = !puzzleGridExpanded;
+  puzzlePanel.hidden = !puzzleGridExpanded;
 }
 
 function populateLanguageSelect(loadedCatalog: CollectionCatalog): void {

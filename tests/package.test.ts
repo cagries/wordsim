@@ -76,8 +76,15 @@ describe("standalone package", () => {
     assert.match(indexHtml, /<label[^>]*for="category-select"[^>]*>Category<\/label>/);
     assert.match(indexHtml, /<select id="category-select"[^>]*disabled>/);
     assert.match(indexHtml, /<option value="anything">Anything<\/option>/);
-    assert.match(indexHtml, /id="puzzle-toggle-button"[^>]*aria-expanded="false"[^>]*disabled/);
-    assert.match(indexHtml, /id="puzzle-grid"[^>]*hidden/);
+    assert.match(
+      indexHtml,
+      /id="puzzle-toggle-button"[^>]*aria-expanded="false"[^>]*aria-controls="puzzle-panel"[^>]*disabled/,
+    );
+    assert.match(
+      indexHtml,
+      /<div id="puzzle-panel"[^>]*hidden>[\s\S]*?id="puzzle-grid"[\s\S]*?class="puzzle-legend"[\s\S]*?<\/div>/,
+    );
+    assert.doesNotMatch(indexHtml, /id="puzzle-grid"[^>]*hidden/);
   });
 
   it("places live feedback between the guess row and assistance controls", () => {
