@@ -75,7 +75,7 @@ export interface Translations {
 }
 
 const english: Translations = {
-  documentTitle: "wordsim",
+  documentTitle: "wordsim - word similarity guessing game",
   description: "Guess a hidden word by following semantic similarity.",
   tagline: "Guess the hidden word.",
   howToPlay: "How to play?",
@@ -161,7 +161,7 @@ const english: Translations = {
 };
 
 const turkish: Translations = {
-  documentTitle: "wordsim",
+  documentTitle: "wordsim - kelime benzerliği tahmin oyunu",
   description: "Anlamsal benzerliği izleyerek gizli kelimeyi bulmalısın.",
   tagline: "Gizli kelimeyi bulma oyunu.",
   howToPlay: "Nasıl oynanır?",
@@ -196,7 +196,7 @@ const turkish: Translations = {
   answerBadge: "Cevap",
   cold: "uzak",
   category: "Kategori",
-  anything: "Herhangi",
+  anything: "",
   categorySelection: "Kategori seç",
   language: "Dil",
   categories: {
@@ -211,7 +211,7 @@ const turkish: Translations = {
   },
   historyCount: (guesses, hints) => `${guesses} tahmin · ${hints} ipucu`,
   puzzleAriaLabel: (number, state) => `${number}. bulmaca${state === "solved" ? ", çözüldü" : state === "revealed" ? ", cevap gösterildi" : state === "started" ? ", başlandı" : ""}`,
-  puzzlePosition: (number, total) => `Bulmaca #${number} (Toplam: ${total})`,
+  puzzlePosition: (number, total) => `Bulmaca #${number} / ${total}`,
   showPuzzles: "Bulmacaları göster",
   hidePuzzles: "Bulmacaları gizle",
   loadingPuzzles: "Bulmacalar yükleniyor…",

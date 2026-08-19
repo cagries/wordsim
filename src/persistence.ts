@@ -10,8 +10,6 @@ export const LEGACY_PROGRESS_STORAGE_KEY = "wordsim.progress.v1";
 export const PROGRESS_STORAGE_PREFIX = "wordsim.progress.v1.";
 export const COLLECTION_STORAGE_KEY = "wordsim.collection.v1";
 const ENGLISH_COLLECTION_ID = "embeddinggemma-768-en-v1";
-const LEGACY_TURKISH_COLLECTION_ID = "embeddingmagibu-768-tr-v1";
-const TURKISH_COLLECTION_ID = "word2vec-skipgram-300-tr-v1";
 
 export function progressStorageKey(collectionId: string): string {
   return `${PROGRESS_STORAGE_PREFIX}${collectionId}`;
@@ -119,22 +117,11 @@ export function saveProgress(
 }
 
 export function loadSelectedCollection(
-  storage: Pick<Storage, "getItem" | "setItem">,
+  storage: Pick<Storage, "getItem">,
   validCollectionIds: readonly string[],
 ): string | null {
   try {
     const selected = storage.getItem(COLLECTION_STORAGE_KEY);
-    if (
-      selected === LEGACY_TURKISH_COLLECTION_ID &&
-      validCollectionIds.includes(TURKISH_COLLECTION_ID)
-    ) {
-      try {
-        storage.setItem(COLLECTION_STORAGE_KEY, TURKISH_COLLECTION_ID);
-      } catch {
-        // The migrated selection still applies for this load when storage is read-only.
-      }
-      return TURKISH_COLLECTION_ID;
-    }
     return selected && validCollectionIds.includes(selected) ? selected : null;
   } catch {
     return null;

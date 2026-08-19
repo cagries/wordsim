@@ -13,7 +13,6 @@ from pipeline.config import (
     COLLECTIONS,
     DATA_ROOT,
     DEFAULT_COLLECTION_ID,
-    TARGET_COUNT,
     TARGETS_PER_CATEGORY,
     TOP_RANK_COUNT,
     TURKISH_OVERRIDES_FILE,
@@ -25,8 +24,9 @@ from pipeline.config import (
 from pipeline.core import (
     build_vocabulary,
     load_targets,
+    rank_target,
     read_json,
-    score_target,
+    TARGET_CATEGORIES,
     vocabulary_version,
     write_json,
 )
@@ -35,25 +35,6 @@ from pipeline.extractors import read_word2vec_binary
 
 
 def load_common_words(collection: CollectionConfig, audit_path: Path) -> list[str]:
-    if collection.vocabulary_source is not None:
-        value = read_json(collection.vocabulary_source)
-        if not isinstance(value, dict) or not isinstance(value.get("keys"), list):
-            raise ValueError(
-                f"Invalid source vocabulary: {collection.vocabulary_source}"
-            )
-        keys = value["keys"]
-        if (
-            value.get("language") != collection.language
-            or value.get("normalization") != collection.normalization
-            or len(keys) < TOP_RANK_COUNT
-            or not all(isinstance(word, str) for word in keys)
-        ):
-            raise ValueError(
-                f"Incompatible source vocabulary: {collection.vocabulary_source}"
-            )
-        print(f"Using source vocabulary from {collection.vocabulary_source}")
-        return keys
-
     from wordfreq import iter_wordlist
 
     if collection.language == "tr":
@@ -84,19 +65,16 @@ def load_or_create_vocabulary(
     paths: Paths,
     collection: CollectionConfig,
 ) -> list[str]:
-    if collection.vocabulary_source is not None:
-        return load_common_words(collection, paths.vocabulary_audit)
     if paths.vocabulary.exists():
         value = read_json(paths.vocabulary)
         if isinstance(value, dict):
             keys = value.get("keys")
             version = value.get("version")
             if (
-                value.get("schemaVersion") == 2
+                value.get("schemaVersion") == 3
                 and value.get("language") == collection.language
                 and value.get("normalization") == collection.normalization
                 and value.get("vocabularyPolicy") == collection.vocabulary_policy
-                and value.get("keyEncoding") == "plain"
                 and isinstance(keys, list)
                 and TOP_RANK_COUNT <= len(keys) <= VOCABULARY_SIZE
                 and (collection.language != "en" or len(keys) == VOCABULARY_SIZE)
@@ -192,20 +170,6 @@ def load_or_create_static_embeddings(
     artifact = collection.extractor.artifact
     if artifact is None:
         raise ValueError(f"Collection {collection.id} has no static artifact configured.")
-    source_directory = static_source_directory(cache_root, collection)
-    model_path = source_directory / artifact.member_name
-    receipt_path = source_directory / "artifact.json"
-    if not model_path.exists() or not receipt_path.exists():
-        raise FileNotFoundError(
-            f"Static model is not available. Run: python -m pipeline fetch "
-            f"--collection {collection.id}"
-        )
-    receipt = read_json(receipt_path)
-    if not isinstance(receipt, dict) or not isinstance(
-        receipt.get("modelSha256"), str
-    ):
-        raise ValueError(f"Invalid artifact receipt: {receipt_path}")
-
     requested_version = vocabulary_version(requested_words)
     actual = (
         read_json(paths.cache_metadata)
@@ -237,16 +201,35 @@ def load_or_create_static_embeddings(
             "normalization": collection.normalization,
             "vocabularyVersion": usable_version,
             "requestedVocabularyVersion": requested_version,
-            "artifactSha256": receipt["modelSha256"],
+            "artifactSha256": artifact.model_sha256,
         }
         if not force and actual == expected:
-            embeddings = np.load(paths.embeddings)
-            if embeddings.shape == (
-                len(cached_words),
-                collection.extractor.dimensions,
-            ):
-                print(f"Using cached embeddings from {paths.embeddings}")
-                return cached_words, embeddings, expected
+            try:
+                embeddings = np.load(paths.embeddings)
+            except (OSError, ValueError):
+                embeddings = None
+            if embeddings is not None:
+                if embeddings.shape == (
+                    len(cached_words),
+                    collection.extractor.dimensions,
+                ):
+                    print(f"Using cached embeddings from {paths.embeddings}")
+                    return cached_words, embeddings, expected
+
+    source_directory = static_source_directory(cache_root, collection)
+    model_path = source_directory / artifact.member_name
+    receipt_path = source_directory / "artifact.json"
+    if not model_path.exists() or not receipt_path.exists():
+        raise FileNotFoundError(
+            f"Static model is not available. Run: python -m pipeline fetch "
+            f"--collection {collection.id}"
+        )
+    receipt = read_json(receipt_path)
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("modelSha256") != artifact.model_sha256
+    ):
+        raise ValueError(f"Invalid artifact receipt: {receipt_path}")
 
     selection = read_word2vec_binary(
         model_path,
@@ -266,7 +249,7 @@ def load_or_create_static_embeddings(
         "coveragePercent": round(100 * len(selection.words) / len(requested_words), 4),
         "missingWords": selection.missing,
         "missingTargets": missing_targets,
-        "artifactSha256": receipt["modelSha256"],
+        "artifactSha256": artifact.model_sha256,
     }
     paths.cache.mkdir(parents=True, exist_ok=True)
     write_json(paths.coverage_audit, coverage)
@@ -290,7 +273,7 @@ def load_or_create_static_embeddings(
         "normalization": collection.normalization,
         "vocabularyVersion": usable_version,
         "requestedVocabularyVersion": requested_version,
-        "artifactSha256": receipt["modelSha256"],
+        "artifactSha256": artifact.model_sha256,
     }
     np.save(paths.embeddings, selection.embeddings)
     write_json(paths.static_vocabulary, {"keys": selection.words})
@@ -308,7 +291,7 @@ def generate(args: argparse.Namespace) -> None:
     targets_path = args.targets or collection.targets
     targets = load_targets(
         targets_path,
-        TARGET_COUNT,
+        TARGETS_PER_CATEGORY * len(TARGET_CATEGORIES),
         collection.language,
         expected_per_category=TARGETS_PER_CATEGORY,
     )
@@ -344,12 +327,11 @@ def generate(args: argparse.Namespace) -> None:
     write_json(
         paths.vocabulary,
         {
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "version": version,
             "language": collection.language,
             "normalization": collection.normalization,
             "vocabularyPolicy": collection.vocabulary_policy,
-            "keyEncoding": "plain",
             "keys": words,
         },
     )
@@ -359,25 +341,22 @@ def generate(args: argparse.Namespace) -> None:
     for target in targets:
         target_id = target["id"]
         word = target["word"]
-        label = f"Puzzle {int(target_id) + 1}"
-        scores, top_indices = score_target(words, embeddings, word, TOP_RANK_COUNT)
+        top_indices = rank_target(words, embeddings, word, TOP_RANK_COUNT)
         filename = f"puzzles/{target_id}.json"
         expected_puzzle_files.add(paths.output / filename)
         write_json(
             paths.output / filename,
             {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "vocabularyVersion": version,
                 "targetKey": word,
                 "category": target["category"],
-                "scores": scores,
                 "topIndices": top_indices,
             },
         )
         puzzles.append(
             {
                 "id": target_id,
-                "label": label,
                 "file": filename,
                 "category": target["category"],
             }
@@ -395,7 +374,7 @@ def generate(args: argparse.Namespace) -> None:
     write_json(
         paths.manifest,
         {
-            "schemaVersion": 3,
+            "schemaVersion": 4,
             "id": collection.id,
             "language": collection.language,
             "extractor": extractor_manifest,
@@ -416,7 +395,7 @@ def audit(args: argparse.Namespace) -> None:
     )
     targets = load_targets(
         args.targets or collection.targets,
-        TARGET_COUNT,
+        TARGETS_PER_CATEGORY * len(TARGET_CATEGORIES),
         collection.language,
         expected_per_category=TARGETS_PER_CATEGORY,
     )
@@ -445,11 +424,10 @@ def audit(args: argparse.Namespace) -> None:
         puzzle = read_json(paths.output / f"puzzles/{target_id}.json")
         if not isinstance(puzzle, dict):
             raise ValueError(f"Invalid puzzle data for {word}.")
-        scores = puzzle["scores"]
         top_indices = puzzle["topIndices"]
         print(f'\n{label} [ID {target_id}] — {target["category"]}: {word}')
         for rank, index in enumerate(top_indices[: args.limit], start=1):
-            print(f"{rank:>3}  {words[index]:<20} {scores[index] / 100:>7.2f}")
+            print(f"{rank:>3}  {words[index]}")
 
 
 def fetch(args: argparse.Namespace) -> None:

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-08-19
+
+### Changed
+
+- Reduced generated puzzle downloads by storing only the nearest 1,000 word ranks instead of a score for every vocabulary entry.
+- Simplified the data schemas and pipeline while preserving existing puzzle IDs and saved progress.
+- Made the cached Turkish embedding subset reusable without retaining the full source model locally.
+
 ## [1.3.0] - 2026-08-18
 
 ### Added

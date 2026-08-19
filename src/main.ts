@@ -19,6 +19,7 @@ import {
 } from "./persistence";
 import { temperatureForRank } from "./temperature";
 import type { TemperatureBand } from "./temperature";
+import { TARGET_CATEGORIES } from "./types";
 import type {
   CollectionCatalog,
   CollectionSummary,
@@ -151,13 +152,9 @@ function applyTranslations(): void {
   changelogLink.textContent = messages.changelog;
 }
 
-const CATEGORY_ORDER = [
-  "animal", "object", "action", "adjective", "food", "place", "occupation", "clothing",
-] as const;
-
 function populateCategorySelect(): void {
   categorySelect.replaceChildren(
-    ...(["anything", ...CATEGORY_ORDER] as const).map((category) => {
+    ...(["anything", ...TARGET_CATEGORIES] as const).map((category) => {
       const option = document.createElement("option");
       option.value = category;
       option.textContent = category === "anything"

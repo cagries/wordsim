@@ -13,7 +13,6 @@ import {
 } from "../src/persistence";
 
 const EN = "embeddinggemma-768-en-v1";
-const LEGACY_TR = "embeddingmagibu-768-tr-v1";
 const TR = "word2vec-skipgram-300-tr-v1";
 
 class MemoryStorage {
@@ -138,21 +137,4 @@ describe("progress persistence", () => {
     assert.equal(loadSelectedCollection(storage, [EN]), null);
   });
 
-  it("migrates only the legacy Turkish collection selection", () => {
-    const storage = new MemoryStorage();
-    saveSelectedCollection(storage, LEGACY_TR);
-    const legacyProgress = emptyProgress("legacy-vocabulary", "7");
-    saveProgress(storage, LEGACY_TR, legacyProgress);
-
-    assert.equal(loadSelectedCollection(storage, [EN, TR]), TR);
-    assert.equal(storage.getItem(COLLECTION_STORAGE_KEY), TR);
-    assert.deepEqual(
-      loadProgress(storage, TR, "current-vocabulary", ["0"], "tr"),
-      emptyProgress("current-vocabulary", "0"),
-    );
-    assert.deepEqual(
-      loadProgress(storage, LEGACY_TR, "legacy-vocabulary", ["7"], "tr"),
-      legacyProgress,
-    );
-  });
 });

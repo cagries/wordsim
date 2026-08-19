@@ -8,8 +8,6 @@ STS_PROMPT = "task: sentence similarity | query: "
 VOCABULARY_SIZE = 30_000
 TOP_RANK_COUNT = 1_000
 TARGETS_PER_CATEGORY = 20
-TARGET_CATEGORY_COUNT = 8
-TARGET_COUNT = TARGETS_PER_CATEGORY * TARGET_CATEGORY_COUNT
 DATA_ROOT = Path("wordsim/data")
 CACHE_ROOT = Path("pipeline-cache")
 
@@ -61,13 +59,11 @@ class CollectionConfig:
     id: str
     language: str
     label: str
-    short_label: str
     normalization: str
     vocabulary_policy: str
     targets: Path
     extractor: ExtractorConfig
     published: bool = True
-    vocabulary_source: Path | None = None
 
     @property
     def output(self) -> Path:
@@ -76,7 +72,6 @@ class CollectionConfig:
 
 
 ENGLISH_COLLECTION_ID = "embeddinggemma-768-en-v1"
-TURKISH_MAGIBU_COLLECTION_ID = "embeddingmagibu-768-tr-v1"
 TURKISH_WORD2VEC_COLLECTION_ID = "word2vec-skipgram-300-tr-v1"
 TURKISH_COLLECTION_ID = TURKISH_WORD2VEC_COLLECTION_ID
 COLLECTIONS = {
@@ -84,7 +79,6 @@ COLLECTIONS = {
         id=ENGLISH_COLLECTION_ID,
         language="en",
         label="English",
-        short_label="EN",
         normalization="en-lower-nfc-v1",
         vocabulary_policy="wordfreq-surface-v1",
         targets=Path(__file__).with_name("targets") / "en.json",
@@ -96,28 +90,10 @@ COLLECTIONS = {
             dimensions=768,
         ),
     ),
-    TURKISH_MAGIBU_COLLECTION_ID: CollectionConfig(
-        id=TURKISH_MAGIBU_COLLECTION_ID,
-        language="tr",
-        label="Türkçe — EmbeddingMagibu",
-        short_label="TR-MAG",
-        normalization="tr-modern-lower-nfc-v1",
-        vocabulary_policy="zeyrek-tr-reviewed-v1",
-        targets=Path(__file__).with_name("targets") / "tr.json",
-        extractor=ExtractorConfig(
-            id="embeddingmagibu",
-            model="alibayram/embeddingmagibu-200m",
-            revision="27755be9526bab57567896307597e6a6a89c8c39",
-            prompt=STS_PROMPT,
-            dimensions=768,
-        ),
-        published=False,
-    ),
     TURKISH_WORD2VEC_COLLECTION_ID: CollectionConfig(
         id=TURKISH_WORD2VEC_COLLECTION_ID,
         language="tr",
         label="Türkçe",
-        short_label="TR",
         normalization="tr-modern-lower-nfc-v1",
         vocabulary_policy="zeyrek-tr-reviewed-word2vec-covered-v1",
         targets=Path(__file__).with_name("targets") / "tr.json",
@@ -156,7 +132,6 @@ COLLECTIONS = {
     ),
 }
 DEFAULT_COLLECTION_ID = ENGLISH_COLLECTION_ID
-TARGETS_FILE = COLLECTIONS[DEFAULT_COLLECTION_ID].targets
 TURKISH_OVERRIDES_FILE = Path(__file__).with_name("targets") / "tr-overrides.json"
 
 
@@ -196,14 +171,13 @@ class Paths:
 
 def catalog_value() -> dict[str, object]:
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "defaultCollectionId": DEFAULT_COLLECTION_ID,
         "collections": [
             {
                 "id": collection.id,
                 "language": collection.language,
                 "label": collection.label,
-                "shortLabel": collection.short_label,
                 "file": f"collections/{collection.id}/collection.json",
             }
             for collection in COLLECTIONS.values()

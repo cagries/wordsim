@@ -55,7 +55,7 @@ Zeyrek is an alpha-stage partial Python port of Zemberek. Its lexicon and morpho
 
 The circumflex collapse remains deliberate: `â`, `î`, and `û` normalize to `a`, `i`, and `u`. This helps ordinary Turkish-keyboard input, while knowingly merging distinctions such as `kar`/`kâr`, `hala`/`hâlâ`, and `aşık`/`âşık`.
 
-The served Turkish collection uses the released 300-dimensional skip-gram Word2Vec table. The earlier `alibayram/embeddingmagibu-200m` configuration remains available for offline comparisons, but its generated data is not part of the runtime package.
+The served Turkish collection uses the released 300-dimensional skip-gram Word2Vec table.
 
 After deployment, any incompatible normalization, vocabulary-policy, or embedding-model change should use a new collection ID to preserve browser progress and reproducibility.
 
@@ -64,3 +64,13 @@ After deployment, any incompatible normalization, vocabulary-policy, or embeddin
 The `word2vec-skipgram-300-tr-v1` collection starts from this exact reviewed vocabulary, then keeps only words present in the released binary model. Word2Vec has no out-of-vocabulary inference, so missing entries are reported rather than approximated with subword vectors or another model. The ordering of retained words remains the original `wordfreq`/Zeyrek ordering, and all configured puzzle targets must be covered.
 
 Only NFC normalization is applied while reading model tokens. In particular, the game's circumflex collapse is not applied to model entries: mapping `hâlâ` onto `hala`, for example, could select the wrong sense or create a collision. This conservative choice can reduce coverage, but the resulting `coverage-audit.json` records that cost explicitly and keeps the experiment reproducible.
+
+## Turkish normalization policy
+
+Turkish input uses locale-aware casing (`I` becomes `ı`, while `İ` becomes `i`) and NFC Unicode normalization. The circumflex variants `â`, `î`, and `û` are deliberately collapsed to `a`, `i`, and `u` before validation, vocabulary deduplication, embedding, lookup, and persistence. This makes ordinary Turkish-keyboard input work reliably, but it also merges distinctions such as `kar`/`kâr`, `hala`/`hâlâ`, and `aşık`/`âşık`.
+
+The accepted Turkish character set is `a-zçğıöşü`. It intentionally includes `q`, `w`, and `x` for common loanwords even though those letters are outside the traditional Turkish alphabet.
+
+The normalization decision is identified as `tr-modern-lower-nfc-v1` in generated vocabulary metadata. The vocabulary policy uses Zeyrek's lexicon to discard proper nouns and selected noun/adjective inflections while taking verb infinitives directly from dictionary lemmas. The checked-in `pipeline/targets/tr-overrides.json` file is an active lexical-review ledger: it records deliberate exceptions and rejects English/Turkish frequency overlaps, and generation fails when a new suspect has not been classified.
+
+The served Turkish collection is `word2vec-skipgram-300-tr-v1`. Future incompatible normalization, vocabulary-policy, or embedding-model changes require another collection ID.

@@ -2,21 +2,15 @@
 
 ## EmbeddingGemma
 
-Puzzle scores are generated with `google/embeddinggemma-300m`, created by Google DeepMind. The model is used under the [Gemma Terms of Use](https://ai.google.dev/gemma/terms) and the accompanying [Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
+Puzzle rankings are generated with `google/embeddinggemma-300m`, created by Google DeepMind. The model is used under the [Gemma Terms of Use](https://ai.google.dev/gemma/terms) and the accompanying [Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
 
-The repository does not redistribute the model weights. Generated score tables are outputs of the model.
-
-## EmbeddingMagibu
-
-The offline pipeline retains support for [`alibayram/embeddingmagibu-200m`](https://huggingface.co/alibayram/embeddingmagibu-200m), developed by M. Ali Bayram, Banu Diri, and Savaş Yıldırım. The model is distributed under the MIT License and is described in “Adapting Multilingual Embedding Models to Turkish via Cross-Lingual Tokenizer Surgery and Offline Distillation.”
-
-The repository does not redistribute the model weights or ship Magibu-generated runtime score tables.
+The repository does not redistribute the model weights. Generated ranking tables are outputs of the model.
 
 ## Turkish Word2Vec
 
-Turkish puzzle scores are generated with the 300-dimensional Word2Vec vectors released by Karahan Sarıtaş, Cahid Arda Öz, and Tunga Güngör with [“A Comprehensive Analysis of Static Word Embeddings for Turkish”](https://doi.org/10.1016/j.eswa.2024.124123). The accompanying [repository and release](https://github.com/Turkish-Word-Embeddings/Word-Embeddings-Repository-for-Turkish/releases/tag/v1.0.0) request citation of the work and its source corpora.
+Turkish puzzle rankings are generated with the 300-dimensional Word2Vec vectors released by Karahan Sarıtaş, Cahid Arda Öz, and Tunga Güngör with [“A Comprehensive Analysis of Static Word Embeddings for Turkish”](https://doi.org/10.1016/j.eswa.2024.124123). The accompanying [repository and release](https://github.com/Turkish-Word-Embeddings/Word-Embeddings-Repository-for-Turkish/releases/tag/v1.0.0) request citation of the work and its source corpora.
 
-The repository code carries an MIT license, but the release does not state separate terms for the model artifacts. Wordsim does not redistribute the archive or extracted vectors; it currently includes only derived vocabulary similarity scores with attribution. The model-artifact terms should be clarified before publishing the project more broadly, or the scores should be regenerated with independently trained vectors.
+The repository code carries an MIT license, but the release does not state separate terms for the model artifacts. Wordsim does not redistribute the archive or extracted vectors; it currently includes only derived vocabulary rankings with attribution. The model-artifact terms should be clarified before publishing the project more broadly, or the rankings should be regenerated with independently trained vectors.
 
 ## wordfreq
 

@@ -1,3 +1,4 @@
+import { TARGET_CATEGORIES } from "./types";
 import type {
   CollectionCatalog,
   CollectionManifest,
@@ -16,6 +17,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 const WORD2VEC_MODEL_SHA256 =
   "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f";
+const TARGET_CATEGORY_SET = new Set<string>(TARGET_CATEGORIES);
 
 function extractorIsSupported(manifest: CollectionManifest): boolean {
   const extractor = manifest.extractor;
@@ -55,7 +57,7 @@ export async function loadCatalog(root: string): Promise<CollectionCatalog> {
   const catalog = await fetchJson<CollectionCatalog>(resolveDataUrl(root, "catalog.json"));
   const ids = new Set<string>();
   if (
-    catalog.schemaVersion !== 1 ||
+    catalog.schemaVersion !== 2 ||
     catalog.collections.length === 0 ||
     !catalog.collections.some((collection) => collection.id === catalog.defaultCollectionId)
   ) {
@@ -66,7 +68,7 @@ export async function loadCatalog(root: string): Promise<CollectionCatalog> {
       ids.has(collection.id) ||
       !["en", "tr"].includes(collection.language) ||
       !collection.file ||
-      !collection.shortLabel
+      !collection.label
     ) {
       throw new Error("The collection catalog contains an invalid entry.");
     }
@@ -87,7 +89,7 @@ export async function loadCollection(
   const collectionRoot = parentUrl(manifestUrl);
   const manifest = await fetchJson<CollectionManifest>(manifestUrl);
   if (
-    manifest.schemaVersion !== 3 ||
+    manifest.schemaVersion !== 4 ||
     manifest.id !== summary.id ||
     manifest.language !== summary.language ||
     !extractorIsSupported(manifest) ||
@@ -95,12 +97,8 @@ export async function loadCollection(
     manifest.puzzles.some(
       (puzzle) =>
         typeof puzzle.id !== "string" ||
-        typeof puzzle.label !== "string" ||
         typeof puzzle.file !== "string" ||
-        ![
-          "animal", "object", "action", "adjective", "food", "place",
-          "occupation", "clothing",
-        ].includes(puzzle.category),
+        !TARGET_CATEGORY_SET.has(puzzle.category),
     )
   ) {
     throw new Error("The puzzle collection is invalid or empty.");
@@ -110,8 +108,7 @@ export async function loadCollection(
     resolveDataUrl(collectionRoot, manifest.vocabularyFile),
   );
   if (
-    vocabulary.schemaVersion !== 2 ||
-    vocabulary.keyEncoding !== "plain" ||
+    vocabulary.schemaVersion !== 3 ||
     vocabulary.language !== manifest.language ||
     vocabulary.normalization !== (
       vocabulary.language === "tr" ? "tr-modern-lower-nfc-v1" : "en-lower-nfc-v1"
@@ -132,11 +129,9 @@ export async function loadCollection(
 export async function loadPuzzle(root: string, file: string): Promise<PuzzleData> {
   const puzzle = await fetchJson<PuzzleData>(resolveDataUrl(root, file));
   if (
-    puzzle.schemaVersion !== 2 ||
-    ![
-      "animal", "object", "action", "adjective", "food", "place",
-      "occupation", "clothing",
-    ].includes(puzzle.category)
+    puzzle.schemaVersion !== 3 ||
+    !TARGET_CATEGORY_SET.has(puzzle.category) ||
+    !Array.isArray(puzzle.topIndices)
   ) {
     throw new Error("The puzzle format is not supported.");
   }

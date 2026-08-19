@@ -12,17 +12,16 @@ from unittest.mock import patch
 import numpy as np
 
 from pipeline.artifacts import fetch_artifact
-from pipeline.cli import expected_cache_metadata, parser
+from pipeline.cli import expected_cache_metadata, load_or_create_static_embeddings, parser
 from pipeline.config import (
     ArtifactConfig,
     COLLECTIONS,
     DEFAULT_COLLECTION_ID,
     ENGLISH_COLLECTION_ID,
-    TARGET_COUNT,
     TARGETS_PER_CATEGORY,
     TURKISH_COLLECTION_ID,
-    TURKISH_MAGIBU_COLLECTION_ID,
     TURKISH_WORD2VEC_COLLECTION_ID,
+    Paths,
     catalog_value,
 )
 from pipeline.core import (
@@ -31,7 +30,8 @@ from pipeline.core import (
     load_targets,
     normalize_word,
     normalize_rows,
-    score_target,
+    rank_target,
+    TARGET_CATEGORIES,
     vocabulary_version,
     write_json,
 )
@@ -44,6 +44,8 @@ from pipeline.turkish import (
 
 
 class PipelineCoreTests(unittest.TestCase):
+    TARGET_COUNT = TARGETS_PER_CATEGORY * len(TARGET_CATEGORIES)
+
     def test_cli_defaults_to_standalone_package_data(self) -> None:
         args = parser().parse_args(["audit"])
         self.assertIsNone(args.output)
@@ -62,7 +64,7 @@ class PipelineCoreTests(unittest.TestCase):
             collection = COLLECTIONS[collection_id]
             targets = load_targets(
                 collection.targets,
-                TARGET_COUNT,
+                self.TARGET_COUNT,
                 collection.language,
                 TARGETS_PER_CATEGORY,
             )
@@ -78,14 +80,14 @@ class PipelineCoreTests(unittest.TestCase):
             self.assertEqual(set(counts.values()), {TARGETS_PER_CATEGORY})
 
         english = load_targets(
-            COLLECTIONS[ENGLISH_COLLECTION_ID].targets, TARGET_COUNT, "en"
+            COLLECTIONS[ENGLISH_COLLECTION_ID].targets, self.TARGET_COUNT, "en"
         )
         turkish = load_targets(
-            COLLECTIONS[TURKISH_COLLECTION_ID].targets, TARGET_COUNT, "tr"
+            COLLECTIONS[TURKISH_COLLECTION_ID].targets, self.TARGET_COUNT, "tr"
         )
         aligned_new_categories = sum(
             english[index]["category"] == turkish[index]["category"]
-            for index in range(50, TARGET_COUNT)
+            for index in range(50, self.TARGET_COUNT)
         )
         self.assertLess(aligned_new_categories, 30)
         turkish_words = {target["word"] for target in turkish}
@@ -96,7 +98,7 @@ class PipelineCoreTests(unittest.TestCase):
             ("gitar", "muz", "yapmak", "çiftlik"),
         )
 
-    def test_word2vec_is_published_and_magibu_is_staged(self) -> None:
+    def test_only_published_collections_are_configured(self) -> None:
         collection = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID]
         self.assertTrue(collection.published)
         self.assertEqual(
@@ -109,34 +111,24 @@ class PipelineCoreTests(unittest.TestCase):
         )
         self.assertEqual(collection.extractor.kind, "word2vec-binary")
         self.assertEqual(collection.extractor.dimensions, 300)
-        magibu = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID]
-        self.assertFalse(magibu.published)
-        self.assertEqual(
-            magibu.output,
-            Path("pipeline-cache/staging/embeddingmagibu-768-tr-v1"),
-        )
+        self.assertEqual(set(COLLECTIONS), {
+            ENGLISH_COLLECTION_ID, TURKISH_WORD2VEC_COLLECTION_ID
+        })
 
     def test_collections_pin_their_models_and_prompts(self) -> None:
         english = COLLECTIONS[ENGLISH_COLLECTION_ID].extractor
-        magibu = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID].extractor
         turkish = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID].extractor
         self.assertEqual(english.id, "embeddinggemma")
-        self.assertEqual(magibu.id, "embeddingmagibu")
-        self.assertEqual(magibu.model, "alibayram/embeddingmagibu-200m")
-        self.assertEqual(
-            magibu.revision, "27755be9526bab57567896307597e6a6a89c8c39"
-        )
-        self.assertEqual(english.prompt, magibu.prompt)
-        self.assertEqual(magibu.prompt, "task: sentence similarity | query: ")
+        self.assertEqual(english.prompt, "task: sentence similarity | query: ")
         self.assertEqual(turkish.id, "word2vec-skipgram")
         self.assertEqual(turkish.prompt, "")
         self.assertFalse(english.trust_remote_code)
         self.assertFalse(turkish.trust_remote_code)
 
     def test_cache_metadata_uses_the_collection_extractor(self) -> None:
-        collection = COLLECTIONS[TURKISH_MAGIBU_COLLECTION_ID]
+        collection = COLLECTIONS[ENGLISH_COLLECTION_ID]
         metadata = expected_cache_metadata("vocabulary", collection, "test-version")
-        self.assertEqual(metadata["model"], "alibayram/embeddingmagibu-200m")
+        self.assertEqual(metadata["model"], "google/embeddinggemma-300m")
         self.assertEqual(metadata["revision"], collection.extractor.revision)
         self.assertEqual(metadata["prompt"], collection.extractor.prompt)
         self.assertEqual(metadata["dimensions"], 768)
@@ -197,6 +189,44 @@ class PipelineCoreTests(unittest.TestCase):
                 read_word2vec_binary(path, ["kelime"], expected_dimensions=2)
             with self.assertRaisesRegex(ValueError, "truncated"):
                 read_word2vec_binary(path, ["kelime"], expected_dimensions=3)
+
+    def test_static_embedding_cache_does_not_require_source_model(self) -> None:
+        collection = COLLECTIONS[TURKISH_WORD2VEC_COLLECTION_ID]
+        words = ["hedef", "yakın"]
+        version = vocabulary_version(words)
+        artifact = collection.extractor.artifact
+        self.assertIsNotNone(artifact)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = Paths(root / "output", root / "cache" / collection.id)
+            paths.cache.mkdir(parents=True)
+            np.save(paths.embeddings, np.ones((2, 300), dtype=np.float32))
+            write_json(paths.static_vocabulary, {"keys": words})
+            expected = {
+                "model": collection.extractor.model,
+                "revision": collection.extractor.revision,
+                "dimensions": collection.extractor.dimensions,
+                "collectionId": collection.id,
+                "language": collection.language,
+                "normalization": collection.normalization,
+                "vocabularyVersion": version,
+                "requestedVocabularyVersion": version,
+                "artifactSha256": artifact.model_sha256,
+            }
+            write_json(paths.cache_metadata, expected)
+
+            cached_words, embeddings, metadata = load_or_create_static_embeddings(
+                paths,
+                collection,
+                words,
+                [{"id": "0", "word": "hedef", "category": "object"}],
+                cache_root=root / "missing-sources",
+                force=False,
+            )
+
+        self.assertEqual(cached_words, words)
+        self.assertEqual(embeddings.shape, (2, 300))
+        self.assertEqual(metadata, expected)
 
     def test_artifact_fetches_zip_and_records_checksums(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -380,18 +410,17 @@ class PipelineCoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "zero-length"):
             normalize_rows(np.array([[0.0, 0.0]], dtype=np.float32))
 
-    def test_score_target_quantizes_and_ranks(self) -> None:
+    def test_rank_target_orders_cosine_similarity(self) -> None:
         words = ["cold", "target", "warm"]
         embeddings = normalize_rows(
             np.array([[-1.0, 0.0], [1.0, 0.0], [0.8, 0.6]], dtype=np.float32)
         )
-        scores, top = score_target(words, embeddings, "target", 3)
-        self.assertEqual(scores, [-10_000, 10_000, 8_000])
+        top = rank_target(words, embeddings, "target", 3)
         self.assertEqual(top, [1, 2, 0])
 
-    def test_score_target_requires_matching_inputs(self) -> None:
+    def test_rank_target_requires_matching_inputs(self) -> None:
         with self.assertRaisesRegex(ValueError, "not in the vocabulary"):
-            score_target(["word"], np.ones((1, 2)), "missing", 1)
+            rank_target(["word"], np.ones((1, 2)), "missing", 1)
 
     def test_vocabulary_version_is_stable_and_order_sensitive(self) -> None:
         self.assertEqual(vocabulary_version(["a", "b"]), vocabulary_version(["a", "b"]))

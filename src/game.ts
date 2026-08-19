@@ -34,19 +34,22 @@ export function isValidGuessWord(word: string, language: LanguageCode): boolean 
   return language === "tr" ? /^[a-zçğıöşü]+$/.test(word) : /^[a-z]+$/.test(word);
 }
 
-export function encodeGuessKey(word: string, vocabulary: VocabularyData): string {
-  if (vocabulary.keyEncoding !== "plain") {
-    throw new Error(`Unsupported vocabulary encoding: ${String(vocabulary.keyEncoding)}.`);
-  }
-  return word;
-}
-
 export function canRevealCategoryHint(session: GameSession): boolean {
   return !session.complete && session.getResultCounts().guesses >= CATEGORY_GUESS_REQUIREMENT;
 }
 
+const vocabularyIndexes = new WeakMap<VocabularyData, ReadonlyMap<string, number>>();
+
+function vocabularyIndex(vocabulary: VocabularyData): ReadonlyMap<string, number> {
+  const cached = vocabularyIndexes.get(vocabulary);
+  if (cached) return cached;
+  const created = new Map(vocabulary.keys.map((key, index) => [key, index]));
+  vocabularyIndexes.set(vocabulary, created);
+  return created;
+}
+
 export class GameSession {
-  private readonly indexByKey: Map<string, number>;
+  private readonly indexByKey: ReadonlyMap<string, number>;
   private readonly rankByIndex: Map<number, number>;
   private readonly guessedWords = new Set<string>();
   private results: GuessResult[] = [];
@@ -60,11 +63,21 @@ export class GameSession {
     if (vocabulary.version !== puzzle.vocabularyVersion) {
       throw new Error("Puzzle and vocabulary versions do not match.");
     }
-    if (vocabulary.keys.length !== puzzle.scores.length) {
-      throw new Error("Puzzle score count does not match the vocabulary.");
+    const uniqueRanks = new Set(puzzle.topIndices);
+    if (
+      puzzle.topIndices.length === 0 ||
+      uniqueRanks.size !== puzzle.topIndices.length ||
+      puzzle.topIndices.some(
+        (index) => !Number.isInteger(index) || index < 0 || index >= vocabulary.keys.length,
+      )
+    ) {
+      throw new Error("Puzzle ranks do not resolve to unique vocabulary words.");
     }
 
-    this.indexByKey = new Map(vocabulary.keys.map((key, index) => [key, index]));
+    this.indexByKey = vocabularyIndex(vocabulary);
+    if (vocabulary.keys[puzzle.topIndices[0]] !== puzzle.targetKey) {
+      throw new Error("The puzzle answer must have proximity rank 1.");
+    }
     this.rankByIndex = new Map(puzzle.topIndices.map((index, rank) => [index, rank + 1]));
   }
 
@@ -111,7 +124,7 @@ export class GameSession {
       throw new GuessError("duplicate", word);
     }
 
-    const key = encodeGuessKey(word, this.vocabulary);
+    const key = word;
     const index = this.indexByKey.get(key);
     if (index === undefined) {
       throw new GuessError("unknown", word);
@@ -119,7 +132,6 @@ export class GameSession {
 
     const result: GuessResult = {
       word,
-      score: this.puzzle.scores[index],
       rank: this.rankByIndex.get(index) ?? null,
       solved: key === this.puzzle.targetKey,
       source: "guess",
@@ -148,14 +160,12 @@ export class GameSession {
 
     const index = this.puzzle.topIndices[rank - 1];
     const word = index === undefined ? undefined : this.vocabulary.keys[index];
-    const score = index === undefined ? undefined : this.puzzle.scores[index];
-    if (word === undefined || score === undefined) {
+    if (word === undefined) {
       throw new Error(`Hint rank #${rank} does not resolve to a vocabulary word.`);
     }
 
     const result: GuessResult = {
       word,
-      score,
       rank,
       solved: false,
       source: "hint",
@@ -169,13 +179,11 @@ export class GameSession {
       throw new Error("This puzzle is already complete. Reset it to play again.");
     }
     const index = this.indexByKey.get(this.puzzle.targetKey);
-    const score = index === undefined ? undefined : this.puzzle.scores[index];
-    if (index === undefined || score === undefined) {
+    if (index === undefined) {
       throw new Error("The puzzle answer does not resolve to a vocabulary word.");
     }
     const result: GuessResult = {
       word: this.puzzle.targetKey,
-      score,
       rank: 1,
       solved: false,
       source: "answer",
@@ -233,7 +241,12 @@ export class GameSession {
     this.guessedWords.add(result.word);
     this.actions.push(action);
     this.results.push(result);
-    this.results.sort((a, b) => b.score - a.score || a.word.localeCompare(b.word));
+    this.results.sort((a, b) => {
+      if (a.rank === null && b.rank !== null) return 1;
+      if (a.rank !== null && b.rank === null) return -1;
+      if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;
+      return a.word.localeCompare(b.word, this.vocabulary.language);
+    });
     if (result.solved) this.currentOutcome = "solved";
     else if (result.source === "answer") this.currentOutcome = "gave-up";
   }

@@ -9,7 +9,7 @@ from typing import Iterable
 import numpy as np
 
 
-TARGET_CATEGORIES = {
+TARGET_CATEGORIES = (
     "animal",
     "object",
     "action",
@@ -18,7 +18,7 @@ TARGET_CATEGORIES = {
     "place",
     "occupation",
     "clothing",
-}
+)
 ALLOWED_CHARACTERS = {
     "en": frozenset("abcdefghijklmnopqrstuvwxyz"),
     "tr": frozenset("abcdefghijklmnopqrstuvwxyzçğıöşü"),
@@ -134,9 +134,9 @@ def normalize_rows(embeddings: np.ndarray) -> np.ndarray:
     return matrix / norms
 
 
-def score_target(
+def rank_target(
     words: list[str], embeddings: np.ndarray, target: str, top_count: int
-) -> tuple[list[int], list[int]]:
+) -> list[int]:
     if target not in words:
         raise ValueError(f'Target "{target}" is not in the vocabulary.')
     if embeddings.shape[0] != len(words):
@@ -145,9 +145,6 @@ def score_target(
     target_index = words.index(target)
     similarities = np.clip(embeddings @ embeddings[target_index], -1.0, 1.0)
     similarities[target_index] = 1.0
-    scores = np.rint(similarities * 10_000).astype(np.int16)
-    scores[target_index] = 10_000
-
     indices = np.arange(len(words))
     target_priority = np.ones(len(words), dtype=np.int8)
     target_priority[target_index] = 0
@@ -155,7 +152,7 @@ def score_target(
     top_indices = order[: min(top_count, len(words))].astype(int).tolist()
     if top_indices[0] != target_index:
         raise AssertionError("The target must have proximity rank 1.")
-    return scores.astype(int).tolist(), top_indices
+    return top_indices
 
 
 def write_json(path: Path, value: object) -> None:

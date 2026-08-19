@@ -3,18 +3,9 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
-
 import numpy as np
 
 from pipeline.core import normalize_rows
-
-
-class EmbeddingExtractor(Protocol):
-    @property
-    def dimensions(self) -> int: ...
-
-    def encode(self, words: list[str], *, batch_size: int) -> np.ndarray: ...
 
 
 class SentenceTransformerExtractor:

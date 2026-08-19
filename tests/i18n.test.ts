@@ -4,6 +4,11 @@ import { describe, it } from "node:test";
 import { TRANSLATIONS } from "../src/i18n";
 
 describe("guess feedback translations", () => {
+  it("localizes the descriptive document title", () => {
+    assert.equal(TRANSLATIONS.en.documentTitle, "wordsim - word similarity guessing game");
+    assert.equal(TRANSLATIONS.tr.documentTitle, "wordsim - kelime benzerliği tahmin oyunu");
+  });
+
   it("localizes the changelog footer label", () => {
     assert.equal(TRANSLATIONS.en.changelog, "Changelog");
     assert.equal(TRANSLATIONS.tr.changelog, "Değişiklikler");

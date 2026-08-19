@@ -5,9 +5,9 @@ import { preferredPuzzleForCategory, puzzlesForCategory } from "../src/puzzles";
 import type { PuzzleSummary, SavedPuzzleProgress } from "../src/types";
 
 const puzzles: PuzzleSummary[] = [
-  { id: "0", label: "Puzzle 1", file: "puzzles/0.json", category: "animal" },
-  { id: "1", label: "Puzzle 2", file: "puzzles/1.json", category: "food" },
-  { id: "2", label: "Puzzle 3", file: "puzzles/2.json", category: "animal" },
+  { id: "0", file: "puzzles/0.json", category: "animal" },
+  { id: "1", file: "puzzles/1.json", category: "food" },
+  { id: "2", file: "puzzles/2.json", category: "animal" },
 ];
 
 const solved: SavedPuzzleProgress = {

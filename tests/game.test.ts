@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import {
   canRevealCategoryHint,
   CATEGORY_GUESS_REQUIREMENT,
-  encodeGuessKey,
   GameSession,
   GuessError,
   isValidGuessWord,
@@ -13,21 +12,19 @@ import {
 import type { PuzzleData, VocabularyData } from "../src/types";
 
 const vocabulary: VocabularyData = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   version: "test-version",
   language: "en",
   normalization: "en-lower-nfc-v1",
   vocabularyPolicy: "wordfreq-surface-v1",
-  keyEncoding: "plain",
   keys: ["cold", "target", "warm"],
 };
 
 const puzzle: PuzzleData = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   vocabularyVersion: "test-version",
   targetKey: "target",
   category: "object",
-  scores: [-1200, 10000, 7345],
   topIndices: [1, 2],
 };
 
@@ -53,20 +50,18 @@ describe("normalizeGuess", () => {
 
 describe("Turkish GameSession", () => {
   const turkishVocabulary: VocabularyData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     version: "tr-version",
     language: "tr",
     normalization: "tr-modern-lower-nfc-v1",
     vocabularyPolicy: "zeyrek-tr-reviewed-word2vec-covered-v1",
-    keyEncoding: "plain",
     keys: ["ışık", "kar"],
   };
   const turkishPuzzle: PuzzleData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     vocabularyVersion: "tr-version",
     targetKey: "ışık",
     category: "object",
-    scores: [10_000, 4000],
     topIndices: [0, 1],
   };
 
@@ -77,32 +72,24 @@ describe("Turkish GameSession", () => {
   });
 });
 
-describe("encodeGuessKey", () => {
-  it("keeps plain vocabulary keys unchanged", () => {
-    assert.equal(encodeGuessKey("warm", vocabulary), "warm");
-  });
-});
-
 describe("GameSession", () => {
-  it("scores ranked and cold guesses", () => {
+  it("ranks nearby guesses and marks cold guesses", () => {
     const session = new GameSession(vocabulary, puzzle);
     assert.deepEqual(session.guess("warm"), {
       word: "warm",
-      score: 7345,
       rank: 2,
       solved: false,
       source: "guess",
     });
     assert.deepEqual(session.guess("cold"), {
       word: "cold",
-      score: -1200,
       rank: null,
       solved: false,
       source: "guess",
     });
   });
 
-  it("sorts history by score", () => {
+  it("sorts ranked guesses ahead of cold guesses", () => {
     const session = new GameSession(vocabulary, puzzle);
     session.guess("cold");
     session.guess("warm");
@@ -145,24 +132,36 @@ describe("GameSession", () => {
       /versions do not match/,
     );
   });
+
+  it("rejects duplicate, out-of-range, and misplaced target ranks", () => {
+    assert.throws(() => new GameSession(vocabulary, { ...puzzle, topIndices: [1, 1] }), /unique/);
+    assert.throws(() => new GameSession(vocabulary, { ...puzzle, topIndices: [1, 3] }), /unique/);
+    assert.throws(() => new GameSession(vocabulary, { ...puzzle, topIndices: [2, 1] }), /rank 1/);
+  });
+
+  it("sorts multiple cold guesses alphabetically", () => {
+    const coldVocabulary: VocabularyData = { ...vocabulary, keys: ["zebra", "target", "warm", "apple"] };
+    const session = new GameSession(coldVocabulary, puzzle);
+    session.guess("zebra");
+    session.guess("apple");
+    assert.deepEqual(session.getResults().map((result) => result.word), ["apple", "zebra"]);
+  });
 });
 
 describe("GameSession hints", () => {
   const hintVocabulary: VocabularyData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     version: "hint-version",
     language: "en",
     normalization: "en-lower-nfc-v1",
     vocabularyPolicy: "wordfreq-surface-v1",
-    keyEncoding: "plain",
     keys: Array.from({ length: 26 }, (_, index) => `word${String.fromCharCode(97 + index)}`),
   };
   const hintPuzzle: PuzzleData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     vocabularyVersion: "hint-version",
     targetKey: "worda",
     category: "action",
-    scores: Array.from({ length: 26 }, (_, index) => 10_000 - index * 100),
     topIndices: Array.from({ length: 25 }, (_, index) => index),
   };
 
@@ -171,7 +170,6 @@ describe("GameSession hints", () => {
     assert.equal(session.getNextHintRank(), 20);
     assert.deepEqual(session.revealHint(), {
       word: "wordt",
-      score: 8100,
       rank: 20,
       solved: false,
       source: "hint",
@@ -274,7 +272,6 @@ describe("giving up", () => {
     session.guess("cold");
     assert.deepEqual(session.revealAnswer(), {
       word: "target",
-      score: 10_000,
       rank: 1,
       solved: false,
       source: "answer",
@@ -317,20 +314,18 @@ describe("giving up", () => {
 describe("category hint access", () => {
   const words = Array.from({ length: 25 }, (_, index) => `guess${String.fromCharCode(97 + index)}`);
   const categoryVocabulary: VocabularyData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     version: "category-version",
     language: "en",
     normalization: "en-lower-nfc-v1",
     vocabularyPolicy: "wordfreq-surface-v1",
-    keyEncoding: "plain",
     keys: ["target", ...words, "hint"],
   };
   const categoryPuzzle: PuzzleData = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     vocabularyVersion: "category-version",
     targetKey: "target",
     category: "food",
-    scores: categoryVocabulary.keys.map((_, index) => 10_000 - index * 100),
     topIndices: categoryVocabulary.keys.map((_, index) => index),
   };
 

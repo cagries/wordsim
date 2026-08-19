@@ -12,14 +12,13 @@ const summary: CollectionSummary = {
   id: "word2vec-skipgram-300-tr-v1",
   language: "tr",
   label: "Türkçe",
-  shortLabel: "TR",
   file: "collections/word2vec-skipgram-300-tr-v1/collection.json",
 };
 
 describe("data loading", () => {
   it("loads and validates the collection catalog", async () => {
     const catalog = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       defaultCollectionId: summary.id,
       collections: [summary],
     };
@@ -32,7 +31,7 @@ describe("data loading", () => {
       {
         ok: true,
         json: async () => ({
-          schemaVersion: 3,
+          schemaVersion: 4,
           id: summary.id,
           language: "tr",
           extractor: {
@@ -53,7 +52,6 @@ describe("data loading", () => {
           vocabularyFile: "vocabulary.json",
           puzzles: [{
             id: "one",
-            label: "Bulmaca 1",
             file: "puzzles/one.json",
             category: "animal",
           }],
@@ -62,12 +60,11 @@ describe("data loading", () => {
       {
         ok: true,
         json: async () => ({
-          schemaVersion: 2,
+          schemaVersion: 3,
           version: "abc",
           language: "tr",
           normalization: "tr-modern-lower-nfc-v1",
           vocabularyPolicy: "zeyrek-tr-reviewed-word2vec-covered-v1",
-          keyEncoding: "plain",
           keys: ["sözcük"],
         }),
       },
@@ -90,7 +87,7 @@ describe("data loading", () => {
   it("rejects a manifest that disagrees with its catalog entry", async () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
-      json: async () => ({ schemaVersion: 3, id: "other", language: "tr", puzzles: [{}] }),
+      json: async () => ({ schemaVersion: 4, id: "other", language: "tr", puzzles: [{}] }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
   });
@@ -99,7 +96,7 @@ describe("data loading", () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
       json: async () => ({
-        schemaVersion: 3,
+        schemaVersion: 4,
         id: summary.id,
         language: summary.language,
         extractor: {
@@ -109,7 +106,7 @@ describe("data loading", () => {
           dimensions: 300,
           trustRemoteCode: true,
         },
-        puzzles: [{ id: "0", label: "Puzzle 1", file: "puzzles/0.json", category: "animal" }],
+        puzzles: [{ id: "0", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
@@ -119,7 +116,7 @@ describe("data loading", () => {
     mock.method(globalThis, "fetch", async () => ({
       ok: true,
       json: async () => ({
-        schemaVersion: 3,
+        schemaVersion: 4,
         id: summary.id,
         language: summary.language,
         extractor: {
@@ -137,7 +134,7 @@ describe("data loading", () => {
           },
           artifactSha256: "wrong",
         },
-        puzzles: [{ id: "0", label: "Puzzle 1", file: "puzzles/0.json", category: "animal" }],
+        puzzles: [{ id: "0", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
     await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
@@ -148,13 +145,12 @@ describe("data loading", () => {
     await assert.rejects(loadPuzzle("/data", "missing.json"), /404/);
   });
 
-  it("loads categorized puzzle schema version 2", async () => {
+  it("loads categorized rank-only puzzle schema version 3", async () => {
     const puzzle = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       vocabularyVersion: "abc",
       targetKey: "violin",
       category: "object",
-      scores: [10_000],
       topIndices: [0],
     };
     mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => puzzle }) as Response);
@@ -165,7 +161,7 @@ describe("data loading", () => {
     mock.method(
       globalThis,
       "fetch",
-      async () => ({ ok: true, json: async () => ({ schemaVersion: 3 }) }) as Response,
+      async () => ({ ok: true, json: async () => ({ schemaVersion: 4 }) }) as Response,
     );
     await assert.rejects(loadPuzzle("/data", "future.json"), /not supported/);
 
@@ -173,7 +169,7 @@ describe("data loading", () => {
     mock.method(
       globalThis,
       "fetch",
-      async () => ({ ok: true, json: async () => ({ schemaVersion: 2, category: "abstract" }) }) as Response,
+      async () => ({ ok: true, json: async () => ({ schemaVersion: 3, category: "abstract", topIndices: [] }) }) as Response,
     );
     await assert.rejects(loadPuzzle("/data", "invalid.json"), /not supported/);
   });

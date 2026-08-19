@@ -38,25 +38,23 @@ export interface CollectionSummary {
   id: string;
   language: LanguageCode;
   label: string;
-  shortLabel: string;
   file: string;
 }
 
 export interface CollectionCatalog {
-  schemaVersion: 1;
+  schemaVersion: 2;
   defaultCollectionId: string;
   collections: CollectionSummary[];
 }
 
 export interface PuzzleSummary {
   id: string;
-  label: string;
   file: string;
   category: TargetCategory;
 }
 
 export interface CollectionManifest {
-  schemaVersion: 3;
+  schemaVersion: 4;
   id: string;
   language: LanguageCode;
   extractor: ExtractorMetadata;
@@ -65,39 +63,32 @@ export interface CollectionManifest {
 }
 
 export interface VocabularyData {
-  schemaVersion: 2;
+  schemaVersion: 3;
   version: string;
   language: LanguageCode;
   normalization: NormalizationStrategy;
   vocabularyPolicy: VocabularyPolicy;
-  keyEncoding: "plain";
   keys: string[];
 }
 
-export type TargetCategory =
-  | "animal"
-  | "object"
-  | "action"
-  | "adjective"
-  | "food"
-  | "place"
-  | "occupation"
-  | "clothing";
+export const TARGET_CATEGORIES = [
+  "animal", "object", "action", "adjective", "food", "place", "occupation", "clothing",
+] as const;
+
+export type TargetCategory = (typeof TARGET_CATEGORIES)[number];
 
 export type CategoryFilter = TargetCategory | "anything";
 
 export interface PuzzleData {
-  schemaVersion: 2;
+  schemaVersion: 3;
   vocabularyVersion: string;
   targetKey: string;
   category: TargetCategory;
-  scores: number[];
   topIndices: number[];
 }
 
 export interface GuessResult {
   word: string;
-  score: number;
   rank: number | null;
   solved: boolean;
   source: "guess" | "hint" | "answer";

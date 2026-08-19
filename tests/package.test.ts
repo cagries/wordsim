@@ -114,7 +114,7 @@ describe("standalone package", () => {
     assert.match(changelogHtml, /class="home-link" href="\.\/"/);
     assert.doesNotMatch(changelogHtml, /\{[{%]/);
     assert.doesNotMatch(changelogHtml, /Unreleased/);
-    for (const version of ["1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
+    for (const version of ["1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
       assert.match(changelogHtml, new RegExp(`v${version.replaceAll(".", "\\.")}`));
     }
   });
@@ -126,7 +126,7 @@ describe("standalone package", () => {
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.3.0");
+    assert.equal(packageMetadata.version, "1.3.1");
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });
@@ -139,6 +139,7 @@ describe("standalone package", () => {
     const catalog = JSON.parse(
       readFileSync(path.join(packageRoot, "data/catalog.json"), "utf8"),
     ) as CollectionCatalog;
+    assert.equal(catalog.schemaVersion, 2);
     assert.equal(catalog.collections.length, 2);
     assert.equal(catalog.defaultCollectionId, "embeddinggemma-768-en-v1");
 
@@ -149,6 +150,8 @@ describe("standalone package", () => {
       const vocabularyPath = path.join(collectionRoot, manifest.vocabularyFile);
       const vocabulary = JSON.parse(readFileSync(vocabularyPath, "utf8")) as VocabularyData;
       assert.equal(manifest.id, collection.id);
+      assert.equal("shortLabel" in collection, false);
+      assert.equal(manifest.puzzles.every((puzzle) => !("label" in puzzle)), true);
       assert.equal(manifest.language, collection.language);
       assert.equal(
         manifest.extractor.id,
@@ -160,6 +163,8 @@ describe("standalone package", () => {
         collection.language === "tr" ? "" : "task: sentence similarity | query: ",
       );
       assert.equal(vocabulary.language, collection.language);
+      assert.equal(vocabulary.schemaVersion, 3);
+      assert.equal("keyEncoding" in vocabulary, false);
       const expectedPolicy = collection.language === "tr"
         ? "zeyrek-tr-reviewed-word2vec-covered-v1"
         : "wordfreq-surface-v1";
@@ -188,7 +193,7 @@ describe("standalone package", () => {
           assert.equal(words.has(word), false, `unexpected Turkish word: ${word}`);
         }
       }
-      assert.equal(manifest.schemaVersion, 3);
+      assert.equal(manifest.schemaVersion, 4);
       assert.equal(manifest.puzzles.length, 160);
       const categoryCounts = new Map<string, number>();
       for (const puzzle of manifest.puzzles) {
@@ -198,10 +203,12 @@ describe("standalone package", () => {
         assert.equal(data.vocabularyVersion, vocabulary.version);
         assert.equal(data.category, puzzle.category);
         categoryCounts.set(puzzle.category, (categoryCounts.get(puzzle.category) ?? 0) + 1);
-        assert.equal(data.scores.length, vocabulary.keys.length);
+        assert.equal(data.schemaVersion, 3);
+        assert.equal("scores" in data, false);
         assert.equal(data.topIndices.length, 1_000);
+        assert.equal(new Set(data.topIndices).size, data.topIndices.length);
+        assert.equal(data.topIndices.every((index) => Number.isInteger(index) && index >= 0 && index < vocabulary.keys.length), true);
         assert.equal(vocabulary.keys[data.topIndices[0]], data.targetKey);
-        assert.equal(data.scores[data.topIndices[0]], 10_000);
       }
       assert.deepEqual([...categoryCounts.values()].sort((a, b) => a - b), Array(8).fill(20));
     }
