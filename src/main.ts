@@ -459,7 +459,7 @@ async function selectPuzzle(puzzle: PuzzleSummary): Promise<void> {
   setStatus(messages.loadingPuzzle(puzzleNumber));
 
   try {
-    const data = await loadPuzzle(collectionRoot, puzzle.file);
+    const data = await loadPuzzle(collectionRoot, puzzle.file, APP_VERSION);
     if (sequence !== puzzleSequence || activeCollection?.id !== collectionId) return;
     let loadedSession: GameSession;
     const saved = savedProgress(puzzle.id);
@@ -519,7 +519,7 @@ async function activateCollection(
   setStatus(messages.loadingPuzzles);
 
   try {
-    const loaded = await loadCollection(dataRoot, summary);
+    const loaded = await loadCollection(dataRoot, summary, APP_VERSION);
     if (sequence !== collectionSequence) return false;
     activeCollection = summary;
     collectionRoot = loaded.collectionRoot;
@@ -774,7 +774,7 @@ nextPuzzleButton.addEventListener("click", () => {
 
 async function initialize(): Promise<void> {
   try {
-    catalog = await loadCatalog(dataRoot);
+    catalog = await loadCatalog(dataRoot, APP_VERSION);
     populateLanguageSelect(catalog);
     applyTranslations();
     const preferred = preferredCollection(catalog);

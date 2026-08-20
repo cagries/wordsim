@@ -22,8 +22,13 @@ describe("data loading", () => {
       defaultCollectionId: summary.id,
       collections: [summary],
     };
-    mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => catalog }) as Response);
-    assert.deepEqual(await loadCatalog("/base/data/"), catalog);
+    let requested = "";
+    mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
+      requested = String(input);
+      return { ok: true, json: async () => catalog } as Response;
+    });
+    assert.deepEqual(await loadCatalog("/base/data/", "1.4.1"), catalog);
+    assert.equal(requested, "/base/data/catalog.json?v=1.4.1");
   });
 
   it("loads a collection and resolves files relative to its directory", async () => {
@@ -75,12 +80,12 @@ describe("data loading", () => {
       return responses.shift() as Response;
     });
 
-    const result = await loadCollection("/base/data/", summary);
+    const result = await loadCollection("/base/data/", summary, "release 1");
     assert.deepEqual(result.vocabulary.keys, ["sözcük"]);
     assert.equal(result.collectionRoot, "/base/data/collections/word2vec-skipgram-300-tr-v1");
     assert.deepEqual(requested, [
-      "/base/data/collections/word2vec-skipgram-300-tr-v1/collection.json",
-      "/base/data/collections/word2vec-skipgram-300-tr-v1/vocabulary.json",
+      "/base/data/collections/word2vec-skipgram-300-tr-v1/collection.json?v=release%201",
+      "/base/data/collections/word2vec-skipgram-300-tr-v1/vocabulary.json?v=release%201",
     ]);
   });
 
@@ -89,7 +94,7 @@ describe("data loading", () => {
       ok: true,
       json: async () => ({ schemaVersion: 4, id: "other", language: "tr", puzzles: [{}] }),
     }) as Response);
-    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
+    await assert.rejects(loadCollection("/data", summary, "test"), /invalid or empty/);
   });
 
   it("rejects unsupported or remote-code-enabled extractors", async () => {
@@ -109,7 +114,7 @@ describe("data loading", () => {
         puzzles: [{ id: "0", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
-    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
+    await assert.rejects(loadCollection("/data", summary, "test"), /invalid or empty/);
   });
 
   it("rejects a Turkish Word2Vec manifest with the wrong artifact identity", async () => {
@@ -137,12 +142,12 @@ describe("data loading", () => {
         puzzles: [{ id: "0", file: "puzzles/0.json", category: "animal" }],
       }),
     }) as Response);
-    await assert.rejects(loadCollection("/data", summary), /invalid or empty/);
+    await assert.rejects(loadCollection("/data", summary, "test"), /invalid or empty/);
   });
 
   it("reports unsuccessful puzzle requests", async () => {
     mock.method(globalThis, "fetch", async () => ({ ok: false, status: 404 }) as Response);
-    await assert.rejects(loadPuzzle("/data", "missing.json"), /404/);
+    await assert.rejects(loadPuzzle("/data", "missing.json", "test"), /404/);
   });
 
   it("loads categorized rank-only puzzle schema version 3", async () => {
@@ -153,8 +158,13 @@ describe("data loading", () => {
       category: "object",
       topIndices: [0],
     };
-    mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => puzzle }) as Response);
-    assert.deepEqual(await loadPuzzle("/data", "puzzles/0.json"), puzzle);
+    let requested = "";
+    mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
+      requested = String(input);
+      return { ok: true, json: async () => puzzle } as Response;
+    });
+    assert.deepEqual(await loadPuzzle("/data", "puzzles/0.json?source=local", "1.4.1"), puzzle);
+    assert.equal(requested, "/data/puzzles/0.json?source=local&v=1.4.1");
   });
 
   it("rejects unsupported puzzle schemas and categories", async () => {
@@ -163,7 +173,7 @@ describe("data loading", () => {
       "fetch",
       async () => ({ ok: true, json: async () => ({ schemaVersion: 4 }) }) as Response,
     );
-    await assert.rejects(loadPuzzle("/data", "future.json"), /not supported/);
+    await assert.rejects(loadPuzzle("/data", "future.json", "test"), /not supported/);
 
     mock.restoreAll();
     mock.method(
@@ -171,6 +181,6 @@ describe("data loading", () => {
       "fetch",
       async () => ({ ok: true, json: async () => ({ schemaVersion: 3, category: "abstract", topIndices: [] }) }) as Response,
     );
-    await assert.rejects(loadPuzzle("/data", "invalid.json"), /not supported/);
+    await assert.rejects(loadPuzzle("/data", "invalid.json", "test"), /not supported/);
   });
 });

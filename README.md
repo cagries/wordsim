@@ -112,6 +112,8 @@ Then open `http://localhost:4000/example/wordsim/`.
 
 The repository intentionally contains no deployment workflow. `npm run build:site` bundles the browser code and creates the local `_site/` output.
 
+Each build stamps JavaScript, CSS, and puzzle-data requests with the version from `package.json`. Bump the version before deploying an update so returning browsers fetch a compatible set of files instead of mixing new HTML with cached assets. For production hosting, configure HTML to revalidate on each visit (or use a short cache lifetime); versioned assets may be cached long-term. If an older deployment is already unresponsive because of mixed cached files, a hard refresh or clearing the site's stored data fixes it immediately.
+
 ## Tests
 
 ```sh

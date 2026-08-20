@@ -5,6 +5,9 @@ import { fileURLToPath } from "node:url";
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourcePath = path.join(projectRoot, "CHANGELOG.md");
 const outputPath = path.join(projectRoot, "wordsim", "changelog.html");
+const packageMetadata = JSON.parse(
+  readFileSync(path.join(projectRoot, "package.json"), "utf8"),
+);
 
 function escapeHtml(value) {
   return value
@@ -107,7 +110,7 @@ function buildPage() {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Release history for wordsim.">
     <title>Changelog · wordsim</title>
-    <link rel="stylesheet" href="./app.css">
+    <link rel="stylesheet" href="./app.css?v=${escapeHtml(packageMetadata.version)}">
   </head>
   <body>
     <main class="landing changelog-page">

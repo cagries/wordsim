@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.1] - 2026-08-20
+
+### Fixed
+
+- Versioned files to solve caching problems.
+
 ## [1.4.0] - 2026-08-20
 
 ### Added

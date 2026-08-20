@@ -20,8 +20,8 @@ const packageMetadata = JSON.parse(
 
 describe("standalone package", () => {
   it("uses only directory-relative runtime references", () => {
-    assert.match(indexHtml, /href="\.\/app\.css"/);
-    assert.match(indexHtml, /src="\.\/app\.js"/);
+    assert.match(indexHtml, new RegExp(`href="\\./app\\.css\\?v=${packageMetadata.version}"`));
+    assert.match(indexHtml, new RegExp(`src="\\./app\\.js\\?v=${packageMetadata.version}"`));
     assert.match(indexHtml, /data-data-root="\.\/data"/);
     assert.match(indexHtml, /class="home-link" href="\.\.\/"/);
   });
@@ -120,11 +120,14 @@ describe("standalone package", () => {
 
   it("includes a standalone generated changelog", () => {
     assert.match(changelogHtml, /^<!doctype html>/);
-    assert.match(changelogHtml, /href="\.\/app\.css"/);
+    assert.match(
+      changelogHtml,
+      new RegExp(`href="\\./app\\.css\\?v=${packageMetadata.version}"`),
+    );
     assert.match(changelogHtml, /class="home-link" href="\.\/"/);
     assert.doesNotMatch(changelogHtml, /\{[{%]/);
     assert.doesNotMatch(changelogHtml, /Unreleased/);
-    for (const version of ["1.4.0", "1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
+    for (const version of ["1.4.1", "1.4.0", "1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
       assert.match(changelogHtml, new RegExp(`v${version.replaceAll(".", "\\.")}`));
     }
   });
@@ -136,7 +139,7 @@ describe("standalone package", () => {
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.4.0");
+    assert.equal(packageMetadata.version, "1.4.1");
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });

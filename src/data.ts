@@ -15,6 +15,11 @@ async function fetchJson<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function withCacheVersion(url: string, cacheVersion: string): string {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${encodeURIComponent(cacheVersion)}`;
+}
+
 const WORD2VEC_MODEL_SHA256 =
   "ab24d19b9d811a9636e633710c5bb5b61a85e0cda82e9230fed69f7b684a026f";
 const TARGET_CATEGORY_SET = new Set<string>(TARGET_CATEGORIES);
@@ -53,8 +58,13 @@ function parentUrl(url: string): string {
   return url.slice(0, separator);
 }
 
-export async function loadCatalog(root: string): Promise<CollectionCatalog> {
-  const catalog = await fetchJson<CollectionCatalog>(resolveDataUrl(root, "catalog.json"));
+export async function loadCatalog(
+  root: string,
+  cacheVersion: string,
+): Promise<CollectionCatalog> {
+  const catalog = await fetchJson<CollectionCatalog>(
+    withCacheVersion(resolveDataUrl(root, "catalog.json"), cacheVersion),
+  );
   const ids = new Set<string>();
   if (
     catalog.schemaVersion !== 2 ||
@@ -80,6 +90,7 @@ export async function loadCatalog(root: string): Promise<CollectionCatalog> {
 export async function loadCollection(
   root: string,
   summary: CollectionSummary,
+  cacheVersion: string,
 ): Promise<{
   manifest: CollectionManifest;
   vocabulary: VocabularyData;
@@ -87,7 +98,7 @@ export async function loadCollection(
 }> {
   const manifestUrl = resolveDataUrl(root, summary.file);
   const collectionRoot = parentUrl(manifestUrl);
-  const manifest = await fetchJson<CollectionManifest>(manifestUrl);
+  const manifest = await fetchJson<CollectionManifest>(withCacheVersion(manifestUrl, cacheVersion));
   if (
     manifest.schemaVersion !== 4 ||
     manifest.id !== summary.id ||
@@ -105,7 +116,7 @@ export async function loadCollection(
   }
 
   const vocabulary = await fetchJson<VocabularyData>(
-    resolveDataUrl(collectionRoot, manifest.vocabularyFile),
+    withCacheVersion(resolveDataUrl(collectionRoot, manifest.vocabularyFile), cacheVersion),
   );
   if (
     vocabulary.schemaVersion !== 3 ||
@@ -126,8 +137,14 @@ export async function loadCollection(
   return { manifest, vocabulary, collectionRoot };
 }
 
-export async function loadPuzzle(root: string, file: string): Promise<PuzzleData> {
-  const puzzle = await fetchJson<PuzzleData>(resolveDataUrl(root, file));
+export async function loadPuzzle(
+  root: string,
+  file: string,
+  cacheVersion: string,
+): Promise<PuzzleData> {
+  const puzzle = await fetchJson<PuzzleData>(
+    withCacheVersion(resolveDataUrl(root, file), cacheVersion),
+  );
   if (
     puzzle.schemaVersion !== 3 ||
     !TARGET_CATEGORY_SET.has(puzzle.category) ||
