@@ -23,9 +23,26 @@ describe("guess feedback translations", () => {
     assert.equal(TRANSLATIONS.tr.categories.clothing, "Giyim");
   });
 
-  it("explains the temperature scale in both languages", () => {
-    assert.match(TRANSLATIONS.en.howRankingText, /blue .* red/);
-    assert.match(TRANSLATIONS.tr.howRankingText, /mavi .* kırmızı/);
+  it("provides a five-step localized tutorial", () => {
+    assert.equal(TRANSLATIONS.en.tutorialSlides.length, 5);
+    assert.equal(TRANSLATIONS.tr.tutorialSlides.length, 5);
+    assert.match(TRANSLATIONS.en.tutorialSlides[1].text, /cold, blue/);
+    assert.match(TRANSLATIONS.en.tutorialSlides[3].text, /Redder colors/);
+    assert.match(TRANSLATIONS.tr.tutorialSlides[1].text, /Mavi ve uzak/);
+    assert.match(TRANSLATIONS.tr.tutorialSlides[3].text, /Kırmızıya/);
+    assert.equal(TRANSLATIONS.en.tutorialSlides.at(-1)?.rows[0].rank, 1);
+    assert.equal(TRANSLATIONS.tr.tutorialSlides.at(-1)?.rows[0].rank, 1);
+  });
+
+  it("uses tutorial answers that are not live puzzle targets", async () => {
+    const { readFileSync } = await import("node:fs");
+    const targets = new Set(
+      ["en", "tr"].flatMap((language) => (
+        JSON.parse(readFileSync(`pipeline/targets/${language}.json`, "utf8")) as { word: string }[]
+      ).map((target) => target.word)),
+    );
+    assert.equal(targets.has("planet"), false);
+    assert.equal(targets.has("okyanus"), false);
   });
 
   it("formats compact English results", () => {

@@ -18,19 +18,35 @@
       </select>
     </div>
     <p id="tagline">Guess the hidden word.</p>
-    <details class="how-to-play">
-      <summary id="how-summary">How to play?</summary>
-      <div class="how-to-content">
-        <p id="how-intro">Find the hidden word by guessing one common English word at a time.</p>
-        <ul>
-          <li><strong id="how-first-label">First guess:</strong> <span id="how-first-text">You start with no prior information, guess anything!</span></li>
-          <li><strong id="how-ranking-label">Ranking:</strong> <span id="how-ranking-text">Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).</span></li>
-          <li><strong id="how-hints-label">Hints:</strong> <span id="how-hints-text">Word hints reveal increasingly close words. Under Anything, the category hint unlocks after 5 accepted guesses.</span></li>
-          <li id="how-forms-item" hidden><strong id="how-forms-label"></strong> <span id="how-forms-text"></span></li>
-        </ul>
-      </div>
-    </details>
+    <button id="how-button" class="how-to-play" type="button">How to play?</button>
   </header>
+
+  <dialog id="tutorial-dialog" class="tutorial-dialog" aria-labelledby="tutorial-title" aria-describedby="tutorial-step-text">
+    <div class="tutorial-shell">
+      <div class="tutorial-header">
+        <h2 id="tutorial-title">How to play wordsim</h2>
+        <button id="tutorial-close-button" class="tutorial-close-button" type="button" aria-label="Close tutorial">×</button>
+      </div>
+      <p id="tutorial-progress" class="tutorial-progress">Step 1 of 5</p>
+      <section id="tutorial-snapshot" class="tutorial-snapshot" aria-live="polite">
+        <h3 id="tutorial-step-title">Start anywhere</h3>
+        <p id="tutorial-step-text">Find the hidden word by entering one common English word at a time.</p>
+        <div class="tutorial-example" aria-hidden="true">
+          <span id="tutorial-guess-label" class="tutorial-guess-label">Your guess</span>
+          <div class="tutorial-mock-guess-row">
+            <span id="tutorial-mock-input" class="tutorial-mock-input">music</span>
+            <span id="tutorial-mock-button" class="tutorial-mock-button">Guess</span>
+          </div>
+          <p id="tutorial-mock-status" class="tutorial-mock-status">Try any common English word.</p>
+          <div id="tutorial-mock-history" class="tutorial-mock-history"></div>
+        </div>
+      </section>
+      <div class="tutorial-controls">
+        <button id="tutorial-back-button" type="button" disabled>Back</button>
+        <button id="tutorial-next-button" class="tutorial-next-button" type="button">Next</button>
+      </div>
+    </div>
+  </dialog>
 
   <div class="category-selection">
     <label id="category-select-label" for="category-select">Category</label>
@@ -61,6 +77,9 @@
       <button id="word-hint-button" class="hint-button" type="button" disabled>Word hint</button>
       <button id="category-hint-button" class="hint-button category-hint-button" type="button" disabled>Category hint</button>
       <button id="give-up-button" class="give-up-button" type="button" disabled>Give up</button>
+    </div>
+    <div class="completion-row">
+      <button id="next-puzzle-button" class="next-puzzle-button" type="button" hidden disabled>Next puzzle</button>
     </div>
   </form>
 

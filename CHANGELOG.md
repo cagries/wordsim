@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0] - 2026-08-20
+
+### Added
+
+- Improved the tutorial.
+- Added a "Next puzzle" action for easier transition to the next unfinished puzzle.
+
 ## [1.3.1] - 2026-08-19
 
 ### Changed

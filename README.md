@@ -4,6 +4,8 @@ A small game that scores guesses by semantic similarity, similar to Contexto or 
 
 The demo contains English and Turkish collections, each with 160 puzzles currently: 20 each for animals, objects, actions, adjectives, foods, places, occupations, and clothing. For the generated puzzles, stable IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`.
 
+The “How to play?” control opens a localized five-step visual tutorial. After a puzzle is solved or its answer is revealed, “Next puzzle” continues to the next unfinished puzzle in the current category selection.
+
 ## Prerequisites
 
 - Node.js 18 or newer

@@ -1,6 +1,6 @@
 [project]
 name = "wordsim-pipeline"
-version = "1.3.1"
+version = "1.4.0"
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=2.0,<3",

@@ -9,7 +9,11 @@ import {
   GuessError,
 } from "./game";
 import { TRANSLATIONS } from "./i18n";
-import { preferredPuzzleForCategory, puzzlesForCategory } from "./puzzles";
+import {
+  nextUnfinishedPuzzle,
+  preferredPuzzleForCategory,
+  puzzlesForCategory,
+} from "./puzzles";
 import {
   emptyProgress,
   loadProgress,
@@ -49,17 +53,20 @@ const languageSelect = requiredElement<HTMLSelectElement>("language-select");
 const categorySelectLabel = requiredElement<HTMLLabelElement>("category-select-label");
 const categorySelect = requiredElement<HTMLSelectElement>("category-select");
 const tagline = requiredElement<HTMLParagraphElement>("tagline");
-const howSummary = requiredElement<HTMLElement>("how-summary");
-const howIntro = requiredElement<HTMLElement>("how-intro");
-const howFirstLabel = requiredElement<HTMLElement>("how-first-label");
-const howFirstText = requiredElement<HTMLElement>("how-first-text");
-const howRankingLabel = requiredElement<HTMLElement>("how-ranking-label");
-const howRankingText = requiredElement<HTMLElement>("how-ranking-text");
-const howHintsLabel = requiredElement<HTMLElement>("how-hints-label");
-const howHintsText = requiredElement<HTMLElement>("how-hints-text");
-const howFormsItem = requiredElement<HTMLLIElement>("how-forms-item");
-const howFormsLabel = requiredElement<HTMLElement>("how-forms-label");
-const howFormsText = requiredElement<HTMLElement>("how-forms-text");
+const howButton = requiredElement<HTMLButtonElement>("how-button");
+const tutorialDialog = requiredElement<HTMLDialogElement>("tutorial-dialog");
+const tutorialTitle = requiredElement<HTMLElement>("tutorial-title");
+const tutorialCloseButton = requiredElement<HTMLButtonElement>("tutorial-close-button");
+const tutorialProgress = requiredElement<HTMLElement>("tutorial-progress");
+const tutorialStepTitle = requiredElement<HTMLElement>("tutorial-step-title");
+const tutorialStepText = requiredElement<HTMLElement>("tutorial-step-text");
+const tutorialGuessLabel = requiredElement<HTMLElement>("tutorial-guess-label");
+const tutorialMockInput = requiredElement<HTMLElement>("tutorial-mock-input");
+const tutorialMockButton = requiredElement<HTMLElement>("tutorial-mock-button");
+const tutorialMockStatus = requiredElement<HTMLElement>("tutorial-mock-status");
+const tutorialMockHistory = requiredElement<HTMLElement>("tutorial-mock-history");
+const tutorialBackButton = requiredElement<HTMLButtonElement>("tutorial-back-button");
+const tutorialNextButton = requiredElement<HTMLButtonElement>("tutorial-next-button");
 const guessLabel = requiredElement<HTMLElement>("guess-label");
 const assistanceControls = requiredElement<HTMLElement>("assistance-controls");
 const puzzlePanel = requiredElement<HTMLElement>("puzzle-panel");
@@ -72,6 +79,7 @@ const input = requiredElement<HTMLInputElement>("guess-input");
 const guessButton = requiredElement<HTMLButtonElement>("guess-button");
 const wordHintButton = requiredElement<HTMLButtonElement>("word-hint-button");
 const categoryHintButton = requiredElement<HTMLButtonElement>("category-hint-button");
+const nextPuzzleButton = requiredElement<HTMLButtonElement>("next-puzzle-button");
 const categoryClue = requiredElement<HTMLParagraphElement>("category-clue");
 const status = requiredElement<HTMLParagraphElement>("status");
 const history = requiredElement<HTMLTableSectionElement>("guess-history");
@@ -103,6 +111,7 @@ let locale: LanguageCode = "en";
 let messages = TRANSLATIONS.en;
 let selectedCategory: CategoryFilter = "anything";
 let puzzleGridExpanded = false;
+let tutorialStep = 0;
 let collectionSequence = 0;
 let puzzleSequence = 0;
 const sessions = new Map<string, GameSession>();
@@ -122,17 +131,12 @@ function applyTranslations(): void {
   categorySelectLabel.textContent = messages.category;
   categorySelect.setAttribute("aria-label", messages.categorySelection);
   tagline.textContent = messages.tagline;
-  howSummary.textContent = messages.howToPlay;
-  howIntro.textContent = messages.howIntro;
-  howFirstLabel.textContent = messages.howFirstLabel;
-  howFirstText.textContent = messages.howFirstText;
-  howRankingLabel.textContent = messages.howRankingLabel;
-  howRankingText.textContent = messages.howRankingText;
-  howHintsLabel.textContent = messages.howHintsLabel;
-  howHintsText.textContent = messages.howHintsText;
-  howFormsLabel.textContent = messages.howFormsLabel;
-  howFormsText.textContent = messages.howFormsText;
-  howFormsItem.hidden = locale !== "tr";
+  howButton.textContent = messages.howToPlay;
+  tutorialTitle.textContent = messages.tutorialTitle;
+  tutorialCloseButton.setAttribute("aria-label", messages.tutorialClose);
+  tutorialBackButton.textContent = messages.tutorialBack;
+  tutorialGuessLabel.textContent = messages.yourGuess;
+  tutorialMockButton.textContent = messages.guess;
   guessLabel.textContent = messages.yourGuess;
   guessButton.textContent = messages.guess;
   giveUpButton.textContent = messages.giveUp;
@@ -144,12 +148,59 @@ function applyTranslations(): void {
   populateCategorySelect();
   renderPuzzlePickerHeading();
   resetButton.textContent = messages.resetSelectedPuzzle;
+  nextPuzzleButton.textContent = messages.nextPuzzle;
   startedLegend.textContent = `● ${messages.started}`;
   solvedLegend.textContent = `✓ ${messages.solved}`;
   revealedLegend.textContent = `× ${messages.answerRevealed}`;
   aboutSummary.textContent = messages.about;
   aboutDescription.textContent = messages.aboutDescription;
   changelogLink.textContent = messages.changelog;
+  renderTutorial();
+}
+
+function renderTutorial(): void {
+  const slides = messages.tutorialSlides;
+  tutorialStep = Math.min(Math.max(tutorialStep, 0), slides.length - 1);
+  const slide = slides[tutorialStep];
+  if (!slide) return;
+
+  tutorialProgress.textContent = messages.tutorialProgress(tutorialStep + 1, slides.length);
+  tutorialStepTitle.textContent = slide.title;
+  tutorialStepText.textContent = slide.text;
+  tutorialMockInput.textContent = slide.inputWord || "\u00a0";
+  tutorialMockInput.dataset.empty = String(slide.inputWord.length === 0);
+  tutorialMockStatus.textContent = slide.status;
+  if (slide.statusRank !== undefined) {
+    tutorialMockStatus.dataset.temperature = temperatureForRank(slide.statusRank);
+  } else {
+    tutorialMockStatus.removeAttribute("data-temperature");
+  }
+
+  tutorialMockHistory.replaceChildren(
+    ...slide.rows.map((result) => {
+      const row = document.createElement("div");
+      row.className = "tutorial-history-row";
+      const word = document.createElement("span");
+      word.textContent = result.word;
+      if (result.hint) {
+        const badge = document.createElement("span");
+        badge.className = "hint-badge";
+        badge.textContent = messages.hintBadge;
+        word.append(badge);
+      }
+      const rank = document.createElement("span");
+      rank.className = "temperature-pill";
+      rank.dataset.temperature = temperatureForRank(result.rank);
+      rank.textContent = result.rank === null ? messages.cold : `#${result.rank}`;
+      row.append(word, rank);
+      return row;
+    }),
+  );
+  tutorialMockHistory.hidden = slide.rows.length === 0;
+  tutorialBackButton.disabled = tutorialStep === 0;
+  tutorialNextButton.textContent = tutorialStep === slides.length - 1
+    ? messages.tutorialStartPlaying
+    : messages.tutorialNext;
 }
 
 function populateCategorySelect(): void {
@@ -272,6 +323,12 @@ function updateHintControls(): void {
     categoryClue.textContent = "";
     categoryClue.hidden = true;
   }
+
+  const next = session?.complete && activePuzzle && progress
+    ? nextUnfinishedPuzzle(puzzles, selectedCategory, activePuzzle.id, progress.puzzles)
+    : undefined;
+  nextPuzzleButton.hidden = next === undefined;
+  nextPuzzleButton.disabled = next === undefined;
 }
 
 function renderResults(results: readonly GuessResult[]): void {
@@ -676,6 +733,43 @@ categorySelect.addEventListener("change", () => {
 puzzleToggleButton.addEventListener("click", () => {
   puzzleGridExpanded = !puzzleGridExpanded;
   renderPuzzlePickerHeading();
+});
+
+howButton.addEventListener("click", () => {
+  tutorialStep = 0;
+  renderTutorial();
+  tutorialDialog.showModal();
+});
+
+tutorialCloseButton.addEventListener("click", () => tutorialDialog.close());
+
+tutorialBackButton.addEventListener("click", () => {
+  if (tutorialStep === 0) return;
+  tutorialStep -= 1;
+  renderTutorial();
+});
+
+tutorialNextButton.addEventListener("click", () => {
+  if (tutorialStep < messages.tutorialSlides.length - 1) {
+    tutorialStep += 1;
+    renderTutorial();
+    return;
+  }
+  tutorialDialog.close();
+  if (!input.disabled) input.focus();
+});
+
+nextPuzzleButton.addEventListener("click", () => {
+  if (!session?.complete || !activePuzzle || !progress) return;
+  const next = nextUnfinishedPuzzle(
+    puzzles,
+    selectedCategory,
+    activePuzzle.id,
+    progress.puzzles,
+  );
+  if (!next) return;
+  nextPuzzleButton.disabled = true;
+  void selectPuzzle(next);
 });
 
 async function initialize(): Promise<void> {

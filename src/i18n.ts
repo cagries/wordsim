@@ -5,20 +5,33 @@ import type {
 } from "./types";
 import type { GuessErrorCode } from "./game";
 
+export interface TutorialRow {
+  word: string;
+  rank: number | null;
+  hint?: boolean;
+}
+
+export interface TutorialSlide {
+  title: string;
+  text: string;
+  inputWord: string;
+  status: string;
+  statusRank?: number | null;
+  rows: TutorialRow[];
+}
+
 export interface Translations {
   documentTitle: string;
   description: string;
   tagline: string;
   howToPlay: string;
-  howIntro: string;
-  howFirstLabel: string;
-  howFirstText: string;
-  howRankingLabel: string;
-  howRankingText: string;
-  howHintsLabel: string;
-  howHintsText: string;
-  howFormsLabel: string;
-  howFormsText: string;
+  tutorialTitle: string;
+  tutorialClose: string;
+  tutorialBack: string;
+  tutorialNext: string;
+  tutorialStartPlaying: string;
+  tutorialProgress: (step: number, total: number) => string;
+  tutorialSlides: TutorialSlide[];
   yourGuess: string;
   guess: string;
   wordHint: string;
@@ -34,6 +47,7 @@ export interface Translations {
   ranking: string;
   puzzles: string;
   resetSelectedPuzzle: string;
+  nextPuzzle: string;
   started: string;
   solved: string;
   answerRevealed: string;
@@ -79,15 +93,65 @@ const english: Translations = {
   description: "Guess a hidden word by following semantic similarity.",
   tagline: "Guess the hidden word.",
   howToPlay: "How to play?",
-  howIntro: "Find the hidden word by guessing one common English word at a time.",
-  howFirstLabel: "First guess:",
-  howFirstText: "You start with no prior information, guess anything!",
-  howRankingLabel: "Ranking:",
-  howRankingText: "Lower is better. #1 is the hidden word, while “cold” means the guess is outside the closest 1000 words. Colors move from blue (farther) to red (closer).",
-  howHintsLabel: "Hints:",
-  howHintsText: "Word hints reveal increasingly close words. Under Anything, the category hint unlocks after 5 accepted guesses.",
-  howFormsLabel: "",
-  howFormsText: "",
+  tutorialTitle: "How to play wordsim",
+  tutorialClose: "Close tutorial",
+  tutorialBack: "Back",
+  tutorialNext: "Next",
+  tutorialStartPlaying: "Start playing",
+  tutorialProgress: (step, total) => `Step ${step} of ${total}`,
+  tutorialSlides: [
+    {
+      title: "Start anywhere",
+      text: "Find the hidden word by entering one common English word at a time. There is no opening clue, so any valid word is a useful first step.",
+      inputWord: "music 👈",
+      status: "Try any common English word.",
+      rows: [],
+    },
+    {
+      title: "Read the feedback",
+      text: "A cold, blue result means the guess is outside the 1000 closest words. Ranked guesses are closer, and lower numbers are better.",
+      inputWord: "music",
+      status: "“music” · cold",
+      statusRank: null,
+      rows: [{ word: "music", rank: null }],
+    },
+    {
+      title: "Use a hint when you need one",
+      text: "A word hint reveals a nearby word. If \"Anything\" is selected as the category, the category hint unlocks after five guesses.",
+      inputWord: "",
+      status: "Hint: “space” is ranked #20.",
+      statusRank: 20,
+      rows: [
+        { word: "space", rank: 20, hint: true },
+        { word: "music", rank: null },
+      ],
+    },
+    {
+      title: "Follow the meaning",
+      text: "Use the warmer words to explore the same semantic neighborhood. Redder colors and smaller ranks mean you are getting closer.",
+      inputWord: "earth",
+      status: "“earth” · #5",
+      statusRank: 5,
+      rows: [
+        { word: "earth", rank: 5 },
+        { word: "space", rank: 20, hint: true },
+        { word: "music", rank: null },
+      ],
+    },
+    {
+      title: "Find the hidden word",
+      text: "Rank #1 is the answer. After finishing, use Next puzzle to continue with another unfinished puzzle in your selected category.",
+      inputWord: "planet",
+      status: "Great job! “planet” · #1",
+      statusRank: 1,
+      rows: [
+        { word: "planet", rank: 1 },
+        { word: "earth", rank: 5 },
+        { word: "space", rank: 20, hint: true },
+        { word: "music", rank: null },
+      ],
+    },
+  ],
   yourGuess: "Your guess",
   guess: "Guess",
   wordHint: "Word hint",
@@ -103,6 +167,7 @@ const english: Translations = {
   ranking: "Ranking",
   puzzles: "Puzzles",
   resetSelectedPuzzle: "Reset selected puzzle",
+  nextPuzzle: "Next puzzle",
   started: "Started",
   solved: "Solved",
   answerRevealed: "Answer revealed",
@@ -165,15 +230,65 @@ const turkish: Translations = {
   description: "Anlamsal benzerliği izleyerek gizli kelimeyi bulmalısın.",
   tagline: "Gizli kelimeyi bulma oyunu.",
   howToPlay: "Nasıl oynanır?",
-  howIntro: "Hedefe gittikçe yakınlaşan kelimeler tahmin ederek gizli kelimeyi bul.",
-  howFirstLabel: "İlk tahmin:",
-  howFirstText: "Başlangıçta hiçbir ipucun yok, aklından herhangi bir kelimeyi dene!",
-  howRankingLabel: "Sıralama:",
-  howRankingText: "Daha düşük sıralama, o kelime daha yakın anlamına geliyor. #1 gizli kelime, “uzak” tahmin ise en yakın 1000 kelimenin dışında. Renkler uzaktaki mavi tonlardan yakındaki kırmızı tonlara ilerler.",
-  howHintsLabel: "İpuçları:",
-  howHintsText: "Kelime ipuçları gizli kelimeye yakın kelimeler gösterir. Herhangi seçiliyken kategori ipucu 5 geçerli tahminden sonra açılır.",
-  howFormsLabel: "Kelime biçimleri:",
-  howFormsText: "Kelimeler sözlükteki biçimlerinde, fiiller -mak/-mek halleriyle yer alıyor.",
+  tutorialTitle: "wordsim nasıl oynanır?",
+  tutorialClose: "Öğreticiyi kapat",
+  tutorialBack: "Geri",
+  tutorialNext: "İleri",
+  tutorialStartPlaying: "Oynamaya başla",
+  tutorialProgress: (step, total) => `${step}/${total}. adım`,
+  tutorialSlides: [
+    {
+      title: "Herhangi bir yerden başla",
+      text: "Gizli kelimeyi bulmak için her seferinde bir Türkçe kelime gir. İstediğin kelimeyle başla.",
+      inputWord: "hayvan 👈",
+      status: "Yaygın bir Türkçe kelime dene.",
+      rows: [],
+    },
+    {
+      title: "Sonucu incele",
+      text: "Mavi ve uzak bir sonuç, yaptığın tahminin en yakın 1000 kelimenin dışında olduğunu gösterir.",
+      inputWord: "hayvan",
+      status: "“hayvan” · uzak",
+      statusRank: null,
+      rows: [{ word: "hayvan", rank: null }],
+    },
+    {
+      title: "Gerektiğinde ipucu kullan",
+      text: "Kelime ipucu yakın bir kelime gösterir. Kategori \"Herhangi\" ise beş tahminden sonra kategori ipucu da kullanıma açılır.",
+      inputWord: "",
+      status: "İpucu: “kutup” #20 sırada.",
+      statusRank: 20,
+      rows: [
+        { word: "kutup", rank: 20, hint: true },
+        { word: "hayvan", rank: null },
+      ],
+    },
+    {
+      title: "Anlamı takip et",
+      text: "Daha sıcak kelimelerden yola çıkarak hedef kelimeye yaklaşacak yeni tahminler yap. Kırmızıya yaklaştıkça ve sıra küçüldükçe hedefe yaklaşırsın.",
+      inputWord: "deniz",
+      status: "“deniz” · #4",
+      statusRank: 4,
+      rows: [
+        { word: "deniz", rank: 4 },
+        { word: "kutup", rank: 20, hint: true },
+        { word: "hayvan", rank: null },
+      ],
+    },
+    {
+      title: "Gizli kelimeyi bul",
+      text: "#1 gizli cevap. Bitirdikten sonra seçtiğin kategorideki tamamlanmamış bir bulmacaya geçmek için Sonraki bulmaca düğmesini kullan.",
+      inputWord: "okyanus",
+      status: "Tebrikler! “okyanus” · #1",
+      statusRank: 1,
+      rows: [
+        { word: "okyanus", rank: 1 },
+        { word: "deniz", rank: 4 },
+        { word: "kutup", rank: 20, hint: true },
+        { word: "hayvan", rank: null },
+      ],
+    },
+  ],
   yourGuess: "Tahminin",
   guess: "Tahmin et",
   wordHint: "Kelime ipucu",
@@ -189,6 +304,7 @@ const turkish: Translations = {
   ranking: "Sıralama",
   puzzles: "Bulmacalar",
   resetSelectedPuzzle: "Seçili bulmacayı sıfırla",
+  nextPuzzle: "Sonraki bulmaca",
   started: "Başlandı",
   solved: "Çözüldü",
   answerRevealed: "Cevap gösterildi",
@@ -196,7 +312,7 @@ const turkish: Translations = {
   answerBadge: "Cevap",
   cold: "uzak",
   category: "Kategori",
-  anything: "",
+  anything: "Herhangi",
   categorySelection: "Kategori seç",
   language: "Dil",
   categories: {

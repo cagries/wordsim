@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { preferredPuzzleForCategory, puzzlesForCategory } from "../src/puzzles";
+import {
+  nextUnfinishedPuzzle,
+  preferredPuzzleForCategory,
+  puzzlesForCategory,
+} from "../src/puzzles";
 import type { PuzzleSummary, SavedPuzzleProgress } from "../src/types";
 
 const puzzles: PuzzleSummary[] = [
@@ -14,6 +18,14 @@ const solved: SavedPuzzleProgress = {
   actions: [],
   categoryRevealed: false,
   solved: true,
+  gaveUp: false,
+};
+
+const revealed: SavedPuzzleProgress = { ...solved, solved: false, gaveUp: true };
+const started: SavedPuzzleProgress = {
+  actions: [{ word: "guess", source: "guess" }],
+  categoryRevealed: false,
+  solved: false,
   gaveUp: false,
 };
 
@@ -36,5 +48,30 @@ describe("category puzzle selection", () => {
       preferredPuzzleForCategory(puzzles, "animal", "1", { "0": solved, "2": solved })?.id,
       "0",
     );
+  });
+});
+
+describe("next unfinished puzzle selection", () => {
+  it("advances within the active category and wraps", () => {
+    assert.equal(nextUnfinishedPuzzle(puzzles, "animal", "0", {})?.id, "2");
+    assert.equal(nextUnfinishedPuzzle(puzzles, "animal", "2", {})?.id, "0");
+  });
+
+  it("skips solved and answer-revealed puzzles", () => {
+    assert.equal(
+      nextUnfinishedPuzzle(puzzles, "anything", "0", { "1": solved, "2": revealed }),
+      undefined,
+    );
+  });
+
+  it("keeps started but unfinished puzzles eligible", () => {
+    assert.equal(
+      nextUnfinishedPuzzle(puzzles, "anything", "0", { "1": started }),
+      puzzles[1],
+    );
+  });
+
+  it("does not return the current puzzle when it is the only match", () => {
+    assert.equal(nextUnfinishedPuzzle(puzzles, "food", "1", {}), undefined);
   });
 });

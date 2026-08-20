@@ -43,14 +43,17 @@ describe("standalone package", () => {
     assert.doesNotMatch(indexHtml, /id="history-section"[^>]*\shidden(?:[\s>])/);
   });
 
-  it("includes a collapsed, native how-to-play disclosure", () => {
-    assert.match(indexHtml, /<details class="how-to-play">\s*<summary id="how-summary">How to play\??<\/summary>/);
-    assert.doesNotMatch(indexHtml, /<details class="how-to-play"[^>]*\sopen(?:[\s>])/);
-    for (const text of ["Ranking:", "cold", "blue", "red", "category hint"]) {
-      assert.match(indexHtml, new RegExp(text, "i"));
-    }
-    assert.doesNotMatch(indexHtml, /Similarity:/);
-    assert.doesNotMatch(indexHtml, /id="how-similarity-/);
+  it("includes an accessible, manually opened tutorial dialog", () => {
+    assert.match(indexHtml, /<button id="how-button"[^>]*>How to play\?<\/button>/);
+    assert.match(
+      indexHtml,
+      /<dialog id="tutorial-dialog"[^>]*aria-labelledby="tutorial-title"[^>]*aria-describedby="tutorial-step-text"/,
+    );
+    assert.match(indexHtml, /id="tutorial-snapshot"[^>]*aria-live="polite"/);
+    assert.match(indexHtml, /id="tutorial-close-button"[^>]*aria-label="Close tutorial"/);
+    assert.match(indexHtml, /id="tutorial-back-button"[^>]*disabled/);
+    assert.match(indexHtml, /id="tutorial-next-button"/);
+    assert.doesNotMatch(indexHtml, /<details class="how-to-play"/);
   });
 
   it("presents rank without a numeric similarity column", () => {
@@ -67,7 +70,7 @@ describe("standalone package", () => {
     assert.match(indexHtml, /<label[^>]*for="language-select"[^>]*>Language<\/label>/);
     assert.match(indexHtml, /<select id="language-select"[^>]*disabled>/);
     assert.doesNotMatch(indexHtml, /id="language-button"/);
-    for (const id of ["tagline", "guess-label", "guesses-heading", "how-summary"]) {
+    for (const id of ["tagline", "guess-label", "guesses-heading", "how-button"]) {
       assert.match(indexHtml, new RegExp(`id="${id}"`));
     }
   });
@@ -95,6 +98,13 @@ describe("standalone package", () => {
     assert.equal(indexHtml.match(/id="status"/g)?.length, 1);
   });
 
+  it("includes a completion-only next-puzzle action near the game controls", () => {
+    assert.match(
+      indexHtml,
+      /id="assistance-controls"[\s\S]*?class="completion-row"[\s\S]*?id="next-puzzle-button"[^>]*hidden[^>]*disabled/,
+    );
+  });
+
   it("includes a collapsed, localizable footer disclosure", () => {
     assert.match(indexHtml, /<footer class="game-footer">/);
     assert.match(indexHtml, /<details class="about">\s*<summary>/);
@@ -114,7 +124,7 @@ describe("standalone package", () => {
     assert.match(changelogHtml, /class="home-link" href="\.\/"/);
     assert.doesNotMatch(changelogHtml, /\{[{%]/);
     assert.doesNotMatch(changelogHtml, /Unreleased/);
-    for (const version of ["1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
+    for (const version of ["1.4.0", "1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
       assert.match(changelogHtml, new RegExp(`v${version.replaceAll(".", "\\.")}`));
     }
   });
@@ -126,7 +136,7 @@ describe("standalone package", () => {
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.3.1");
+    assert.equal(packageMetadata.version, "1.4.0");
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });

@@ -84,28 +84,77 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .language-select:disabled { cursor: not-allowed; opacity: 0.55; }
 .language-select:hover:not(:disabled) { border-color: #176b50; }
 .language-select:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
-.how-to-play { margin: 0.75rem 0 1.25rem; }
-.how-to-play summary {
+.how-to-play {
   width: fit-content;
+  margin: 0.75rem 0 1.25rem;
   padding: 0.4rem 0.65rem;
-  border: 1px solid #aaa69b;
   border-radius: 999px;
-  background: #fffdf8;
-  cursor: pointer;
   font-weight: 700;
 }
-.how-to-play summary:hover { border-color: #176b50; }
-.how-to-play summary:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
-.how-to-content {
-  margin-top: 0.65rem;
-  padding: 0.85rem 1rem;
+.how-to-play:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
+
+.tutorial-dialog {
+  width: min(38rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  padding: 0;
+  border: 1px solid #d7d2c8;
+  border-radius: 0.8rem;
+  background: #fffdf8;
+  color: #20211f;
+  box-shadow: 0 1rem 3rem rgb(32 33 31 / 0.25);
+  overflow: auto;
+}
+.tutorial-dialog::backdrop { background: rgb(20 22 19 / 0.62); }
+.tutorial-shell { padding: 1.25rem; }
+.tutorial-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.tutorial-header h2 { margin: 0; }
+.tutorial-close-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.tutorial-progress { margin: 0.35rem 0 1rem; color: #62645f; font-size: 0.85rem; }
+.tutorial-snapshot h3 { margin: 0; }
+.tutorial-snapshot > p { min-height: 4.5em; margin: 0.45rem 0 1rem; }
+.tutorial-example {
+  padding: 0.9rem;
   border: 1px solid #d7d2c8;
   border-radius: 0.6rem;
+  background: #f6f3eb;
+}
+.tutorial-guess-label { font-weight: 650; }
+.tutorial-mock-guess-row { display: flex; gap: 0.6rem; margin-top: 0.4rem; }
+.tutorial-mock-input, .tutorial-mock-button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #aaa69b;
+  border-radius: 0.45rem;
   background: #fffdf8;
 }
-.how-to-content p { margin: 0; }
-.how-to-content ul { margin: 0.7rem 0 0; padding-left: 1.25rem; }
-.how-to-content li + li { margin-top: 0.45rem; }
+.tutorial-mock-input { flex: 1; }
+.tutorial-mock-input[data-empty="true"] { color: transparent; }
+.tutorial-mock-button { background: #176b50; border-color: #176b50; color: white; font-weight: 700; }
+.tutorial-mock-status {
+  min-height: 1.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.45rem;
+  color: #62645f;
+}
+.tutorial-mock-status[data-temperature] {
+  border-color: var(--temperature-border);
+  background: var(--temperature-soft);
+  color: var(--temperature-soft-text);
+  font-weight: 650;
+}
+.tutorial-mock-history { margin-top: 0.5rem; border-top: 1px solid #d7d2c8; }
+.tutorial-history-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.55rem; border-bottom: 1px solid #d7d2c8; }
+.tutorial-controls { display: flex; justify-content: space-between; gap: 0.75rem; margin-top: 1rem; }
+.tutorial-next-button, .next-puzzle-button { background: #176b50; border-color: #176b50; color: white; font-weight: 700; }
 
 .category-selection {
   display: flex;
@@ -184,6 +233,8 @@ button:hover:not(:disabled) { border-color: #176b50; }
 .assistance-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.6rem; }
 .assistance-row button { font-weight: 700; }
 .assistance-row .give-up-button { margin-left: auto; }
+.completion-row { display: flex; justify-content: flex-end; }
+.next-puzzle-button { margin-top: 0.6rem; }
 #guess-button { background: #176b50; border-color: #176b50; color: white; }
 .hint-button { background: #fff5cf; border-color: #b79a3c; color: #5a4710; }
 .category-hint-button { white-space: nowrap; }
@@ -336,10 +387,12 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .language-select:focus-visible { outline-color: #71d3ad; }
   .category-selection select { border-color: #71d3ad; color: #71d3ad; }
   .category-selection select:focus-visible { outline-color: #71d3ad; }
-  .how-to-play summary { background: #242722; border-color: #555a51; }
-  .how-to-play summary:hover { border-color: #71d3ad; }
-  .how-to-play summary:focus-visible { outline-color: #71d3ad; }
-  .how-to-content { background: #242722; border-color: #43483f; }
+  .how-to-play:focus-visible { outline-color: #71d3ad; }
+  .tutorial-dialog { background: #242722; border-color: #555a51; color: #eff1ea; }
+  .tutorial-progress, .tutorial-mock-status { color: #afb5a8; }
+  .tutorial-example { background: #171916; border-color: #43483f; }
+  .tutorial-mock-input { background: #242722; border-color: #555a51; }
+  .tutorial-mock-history, .tutorial-history-row { border-color: #43483f; }
   .solved-row { background: #164f3a; }
   .hint-button { background: #514319; border-color: #8d7939; color: #ffecac; }
   .puzzle-button[data-state="started"] { background: #514319; border-color: #8d7939; color: #ffecac; }

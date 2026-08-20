@@ -27,3 +27,20 @@ export function preferredPuzzleForCategory(
     return !saved?.solved && !saved?.gaveUp;
   }) ?? matching[0];
 }
+
+export function nextUnfinishedPuzzle(
+  puzzles: readonly PuzzleSummary[],
+  category: CategoryFilter,
+  currentPuzzleId: string,
+  progress: Readonly<Record<string, SavedPuzzleProgress>>,
+): PuzzleSummary | undefined {
+  const matching = puzzlesForCategory(puzzles, category);
+  const currentIndex = matching.findIndex((puzzle) => puzzle.id === currentPuzzleId);
+  for (let offset = 1; offset <= matching.length; offset += 1) {
+    const puzzle = matching[(currentIndex + offset) % matching.length];
+    if (!puzzle || puzzle.id === currentPuzzleId) continue;
+    const saved = progress[puzzle.id];
+    if (!saved?.solved && !saved?.gaveUp) return puzzle;
+  }
+  return undefined;
+}
