@@ -4,7 +4,7 @@ Turkish is agglutinative, so a frequency list of surface forms contains many var
 
 ## Reproducible setup
 
-The generator pins Zeyrek 0.1.3. It calls the rule-based analyzer directly on each normalized `wordfreq` entry, avoiding Zeyrek's text tokenizer and its optional NLTK data download. The analyzer and its dictionaries are installed with the Python package; no separate Turkish model download is required.
+The generator pins Zeyrek 0.1.3. It calls the rule-based analyzer directly on each normalized `wordfreq` entry.
 
 Run the normal collection command after installing the project into the `game/` environment:
 

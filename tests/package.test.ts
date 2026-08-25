@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -16,9 +17,29 @@ const changelogHtml = readFileSync(path.join(packageRoot, "changelog.html"), "ut
 const sourceStyles = readFileSync(path.join(process.cwd(), "src/styles.css"), "utf8");
 const packageMetadata = JSON.parse(
   readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
-) as { version: string };
+) as { version: string; license: string };
 
 describe("standalone package", () => {
+  it("publishes the original project code under the MIT License", () => {
+    const license = readFileSync(path.join(process.cwd(), "LICENSE"), "utf8");
+    const pyproject = readFileSync(path.join(process.cwd(), "pyproject.toml"), "utf8");
+    assert.match(license, /^MIT License$/m);
+    assert.match(license, /Copyright \(c\) 2026 Cagri Eser/);
+    assert.equal(packageMetadata.license, "MIT");
+    assert.match(pyproject, /^license = \{ text = "MIT" \}$/m);
+  });
+
+  it("does not track source models or local embedding caches", () => {
+    const trackedFiles = execFileSync("git", ["ls-files"], { encoding: "utf8" })
+      .trim()
+      .split("\n");
+    assert.equal(trackedFiles.some((file) => file.startsWith("pipeline-cache/")), false);
+    assert.equal(
+      trackedFiles.some((file) => /\.(?:bin|npy|zip)$/.test(file)),
+      false,
+    );
+  });
+
   it("uses only directory-relative runtime references", () => {
     assert.match(indexHtml, new RegExp(`href="\\./app\\.css\\?v=${packageMetadata.version}"`));
     assert.match(indexHtml, new RegExp(`src="\\./app\\.js\\?v=${packageMetadata.version}"`));

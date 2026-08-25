@@ -1,6 +1,7 @@
 {
   "name": "wordsim",
   "version": "1.4.1",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build:changelog": "node scripts/build-changelog.mjs",
