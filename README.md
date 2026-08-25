@@ -1,10 +1,17 @@
-![wordsim](docs/wordsim.png)
-
 # wordsim
 
 `wordsim` is a small game that scores guesses by semantic similarity, similar to Contexto or Semantle. An online version of the game is currently hosted at [cagrislist.org/projects/wordsim](https://cagrislist.org/projects/wordsim) using the code in this repository. The core game is a standalone static page with a vanilla TypeScript client, and all embeddings, cosine similarities, and proximity ranks are computed offline for responsiveness. This repository also includes a small Jekyll landing page for local previewing.
 
 The demo contains English and Turkish collections, each with 160 puzzles currently: 20 each for animals, objects, actions, adjectives, foods, places, occupations, and clothing. For the generated puzzles, stable IDs and category assignments live in `pipeline/targets/en.json` and `pipeline/targets/tr.json`.
+
+<p align="center">
+    <img
+      src="docs/assets/wordsim-ui.jpg"
+      alt="Wordsim game showing guesses ranked with a cold-to-hot color scale"
+      width="680"
+    >
+</p>
+
 
 ## Prerequisites
 
