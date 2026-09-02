@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.2] - 2026-09-02
+
+### Changed
+
+- Replaced the footer description with a link to the Wordsim article.
+
 ## [1.4.1] - 2026-08-20
 
 ### Fixed

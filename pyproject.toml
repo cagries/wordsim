@@ -1,6 +1,6 @@
 [project]
 name = "wordsim-pipeline"
-version = "1.4.1"
+version = "1.4.2"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = [

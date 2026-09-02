@@ -149,19 +149,24 @@ describe("standalone package", () => {
     assert.match(changelogHtml, /class="home-link" href="\.\/"/);
     assert.doesNotMatch(changelogHtml, /\{[{%]/);
     assert.doesNotMatch(changelogHtml, /Unreleased/);
-    for (const version of ["1.4.1", "1.4.0", "1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
+    for (const version of ["1.4.2", "1.4.1", "1.4.0", "1.3.1", "1.3.0", "1.2.1", "1.2.0", "1.1.0", "1.0.0"]) {
       assert.match(changelogHtml, new RegExp(`v${version.replaceAll(".", "\\.")}`));
     }
   });
 
   it("keeps release metadata synchronized", () => {
+    const packageLock = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package-lock.json"), "utf8"),
+    ) as { version: string; packages: Record<string, { version?: string }> };
     const pyproject = readFileSync(path.join(process.cwd(), "pyproject.toml"), "utf8");
     const changelog = readFileSync(path.join(process.cwd(), "CHANGELOG.md"), "utf8");
     const pipelineVersion = pyproject.match(/^version = "(\d+\.\d+\.\d+)"$/m)?.[1];
     const latestRelease = changelog.match(
       /^## \[(\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}$/m,
     )?.[1];
-    assert.equal(packageMetadata.version, "1.4.1");
+    assert.equal(packageMetadata.version, "1.4.2");
+    assert.equal(packageLock.version, packageMetadata.version);
+    assert.equal(packageLock.packages[""]?.version, packageMetadata.version);
     assert.equal(pipelineVersion, packageMetadata.version);
     assert.equal(latestRelease, packageMetadata.version);
   });
