@@ -93,8 +93,7 @@ const startedLegend = requiredElement<HTMLElement>("started-legend");
 const solvedLegend = requiredElement<HTMLElement>("solved-legend");
 const revealedLegend = requiredElement<HTMLElement>("revealed-legend");
 const appVersion = requiredElement<HTMLElement>("app-version");
-const aboutSummary = requiredElement<HTMLElement>("about-summary");
-const aboutDescription = requiredElement<HTMLElement>("about-description");
+const howItWorksLink = requiredElement<HTMLAnchorElement>("how-it-works-link");
 const changelogLink = requiredElement<HTMLAnchorElement>("changelog-link");
 
 appVersion.textContent = `v${APP_VERSION}`;
@@ -152,8 +151,7 @@ function applyTranslations(): void {
   startedLegend.textContent = `● ${messages.started}`;
   solvedLegend.textContent = `✓ ${messages.solved}`;
   revealedLegend.textContent = `× ${messages.answerRevealed}`;
-  aboutSummary.textContent = messages.about;
-  aboutDescription.textContent = messages.aboutDescription;
+  howItWorksLink.textContent = messages.howItWorks;
   changelogLink.textContent = messages.changelog;
   renderTutorial();
 }

@@ -14,6 +14,11 @@ describe("guess feedback translations", () => {
     assert.equal(TRANSLATIONS.tr.changelog, "Değişiklikler");
   });
 
+  it("localizes the technical article footer label", () => {
+    assert.equal(TRANSLATIONS.en.howItWorks, "How does it work?");
+    assert.equal(TRANSLATIONS.tr.howItWorks, "Nasıl çalışır?");
+  });
+
   it("localizes category selection and the expanded categories", () => {
     assert.equal(TRANSLATIONS.en.anything, "Anything");
     assert.equal(TRANSLATIONS.tr.anything, "Herhangi");

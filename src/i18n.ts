@@ -82,8 +82,7 @@ export interface Translations {
   guessFallbackError: string;
   hintFallbackError: string;
   answerFallbackError: string;
-  about: string;
-  aboutDescription: string;
+  howItWorks: string;
   changelog: string;
   guessError: (code: GuessErrorCode, word: string | undefined, outcome: GameOutcome) => string;
 }
@@ -211,8 +210,7 @@ const english: Translations = {
   guessFallbackError: "That guess could not be ranked.",
   hintFallbackError: "Could not reveal a hint.",
   answerFallbackError: "Could not reveal the answer.",
-  about: "About",
-  aboutDescription: "A word guessing game based on word similarities.",
+  howItWorks: "How does it work?",
   changelog: "Changelog",
   guessError: (code, word, outcome) => {
     if (code === "empty") return "Enter a word.";
@@ -348,8 +346,7 @@ const turkish: Translations = {
   guessFallbackError: "Bu tahmin sıralanamadı.",
   hintFallbackError: "İpucu gösterilemedi.",
   answerFallbackError: "Cevap gösterilemedi.",
-  about: "Hakkında",
-  aboutDescription: "Kelime benzerliklerine dayalı bir kelime tahmin oyunu.",
+  howItWorks: "Nasıl çalışır?",
   changelog: "Değişiklikler",
   guessError: (code, word, outcome) => {
     if (code === "empty") return "Bir kelime gir.";

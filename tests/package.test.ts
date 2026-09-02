@@ -126,16 +126,17 @@ describe("standalone package", () => {
     );
   });
 
-  it("includes a collapsed, localizable footer disclosure", () => {
+  it("links to the technical article from the footer", () => {
     assert.match(indexHtml, /<footer class="game-footer">/);
-    assert.match(indexHtml, /<details class="about">\s*<summary>/);
-    assert.doesNotMatch(indexHtml, /<details class="about"[^>]*\sopen(?:[\s>])/);
-    for (const id of ["app-version", "about-summary", "about-description"]) {
+    for (const id of ["app-version", "how-it-works-link"]) {
       assert.match(indexHtml, new RegExp(`id="${id}"`));
     }
-    assert.match(indexHtml, /A word guessing game based on word similarities\./);
-    const aboutSummary = indexHtml.match(/<summary>([\s\S]*?)<\/summary>/)?.[1] ?? "";
-    assert.doesNotMatch(aboutSummary, /<a\b/);
+    assert.match(
+      indexHtml,
+      /<a id="how-it-works-link" href="https:\/\/cagrislist\.org\/blog\/2026\/09\/02\/building-wordsim\/">How does it work\?<\/a>/,
+    );
+    assert.doesNotMatch(indexHtml, /<details class="about"/);
+    assert.doesNotMatch(indexHtml, /id="about-(?:summary|description)"/);
     assert.match(indexHtml, /<a id="changelog-link" href="\.\/changelog\.html">Changelog<\/a>/);
   });
 

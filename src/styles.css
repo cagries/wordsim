@@ -199,13 +199,9 @@ button:hover:not(:disabled) { border-color: #176b50; }
   color: #62645f;
   font-size: 0.85rem;
 }
-.about summary { width: fit-content; cursor: pointer; list-style: none; }
-.about summary::-webkit-details-marker { display: none; }
-.about summary:hover #about-summary { color: #176b50; }
-.about summary:focus-visible { outline: 3px solid #176b50; outline-offset: 2px; }
-.about p { margin: 0.65rem 0 0; }
+.footer-about { margin: 0; }
 .footer-links { margin: 0.5rem 0 0; }
-.footer-links a { color: #176b50; font-weight: 700; }
+.footer-about a, .footer-links a { color: #176b50; font-weight: 700; }
 
 .changelog-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .changelog-header h1, .changelog-page > h2 { margin-top: 0; }
@@ -401,9 +397,7 @@ th:nth-child(n+2), td:nth-child(n+2) { text-align: right; font-variant-numeric: 
   .puzzle-button.selected { outline-color: #71d3ad; }
   .puzzle-legend { color: #afb5a8; }
   .game-footer { border-color: #43483f; color: #afb5a8; }
-  .about summary:hover #about-summary { color: #71d3ad; }
-  .about summary:focus-visible { outline-color: #71d3ad; }
-  .footer-links a { color: #71d3ad; }
+  .footer-about a, .footer-links a { color: #71d3ad; }
   .changelog-intro, .release h2 time { color: #afb5a8; }
   .release h2 { border-color: #43483f; }
   .release code { background: #30342d; }
